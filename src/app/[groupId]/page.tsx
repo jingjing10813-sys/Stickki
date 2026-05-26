@@ -471,7 +471,7 @@ export default function WhiteboardPage() {
         </div>
       </header>
 
-      <div className="flex-shrink-0 flex items-center justify-center pb-3 px-5 relative">
+      <div className="flex-shrink-0 flex items-center justify-center pb-2 px-5">
         {editingMotto ? (
           <input
             autoFocus
@@ -491,11 +491,14 @@ export default function WhiteboardPage() {
             {group.motto}
           </motion.button>
         )}
-        {tasks.length > 0 && (
+      </div>
+
+      {tasks.length > 0 && (
+        <div className="flex-shrink-0 flex items-center justify-end px-5 pb-2">
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setViewAll((v) => !v)}
-            className="absolute right-5 glass rounded-full"
+            className="glass rounded-full"
             style={{ padding: "4px 10px 4px 8px", display: "flex", alignItems: "center", gap: 5, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
           >
             {viewAll ? (
@@ -517,8 +520,8 @@ export default function WhiteboardPage() {
               </>
             )}
           </motion.button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div
         ref={canvasRef}
