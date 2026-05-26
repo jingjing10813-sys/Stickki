@@ -4,32 +4,77 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import type { Task } from "@/types";
+import type { Task, Member } from "@/types";
 import { getColor, TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
 
+function getDdayInfo(dueDate: string | null | undefined): { label: string; color: string } | null {
+  if (!dueDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return { label: "D-day", color: "#EF4444" };
+  if (diff < 0) return { label: `D+${-diff}`, color: "#EF4444" };
+  if (diff <= 4) return { label: `D-${diff}`, color: "#F97316" };
+  return { label: `D-${diff}`, color: "#6B7280" };
+}
+
 export default function TaskDetailPage() {
-  const { groupId, taskId } = useParams<{ groupId: string; taskId: string }>();
+  const { taskId } = useParams<{ groupId: string; taskId: string }>();
   const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [content, setContent] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [assigneeName, setAssigneeName] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [dateMode, setDateMode] = useState<"none" | "deadline" | "range">("none");
+  const [showAssigneePicker, setShowAssigneePicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [origAssigneeId, setOrigAssigneeId] = useState<string | null>(null);
+  const [origDueDate, setOrigDueDate] = useState("");
+  const [origStartDate, setOrigStartDate] = useState("");
+  const [origContent, setOrigContent] = useState("");
   const contentRef = useRef<HTMLTextAreaElement>(null);
-  const originalContent = useRef("");
 
   useEffect(() => {
     supabase.from("tasks").select("*").eq("id", taskId).single().then(({ data }) => {
-      if (data) {
-        setTask(data as Task);
-        setContent(data.content);
-        originalContent.current = data.content;
-      }
+      if (!data) return;
+      setTask(data as Task);
+      setContent(data.content);
+      setOrigContent(data.content);
+      setAssigneeId(data.assignee_id ?? null);
+      setAssigneeName(data.assignee_name ?? null);
+      setOrigAssigneeId(data.assignee_id ?? null);
+      const dd = data.due_date ?? "";
+      const sd = data.start_date ?? "";
+      setDueDate(dd);
+      setStartDate(sd);
+      setOrigDueDate(dd);
+      setOrigStartDate(sd);
+      if (sd) setDateMode("range");
+      else if (dd) setDateMode("deadline");
+      supabase.from("groups").select("members").eq("id", data.group_id).single()
+        .then(({ data: g }) => { if (g) setMembers(g.members ?? []); });
     });
   }, [taskId]);
 
   async function handleBack() {
     const trimmed = content.trim();
-    if (trimmed && trimmed !== originalContent.current) {
-      await supabase.from("tasks").update({ content: trimmed }).eq("id", taskId);
+    const updates: Record<string, unknown> = {};
+    if (trimmed !== origContent) updates.content = trimmed || origContent;
+    if (assigneeId !== origAssigneeId) {
+      updates.assignee_id = assigneeId;
+      updates.assignee_name = assigneeName;
+    }
+    const newDue = dateMode !== "none" ? dueDate : "";
+    const newStart = dateMode === "range" ? startDate : "";
+    if (newDue !== origDueDate) updates.due_date = newDue || null;
+    if (newStart !== origStartDate) updates.start_date = newStart || null;
+    if (Object.keys(updates).length > 0) {
+      await supabase.from("tasks").update(updates).eq("id", taskId);
     }
     router.back();
   }
@@ -77,7 +122,16 @@ export default function TaskDetailPage() {
   const isDone = task.status === "done";
   const isPinned = task.is_pinned ?? false;
   const color = task.color ?? (isTodo ? getColor(task.id, TODO_COLORS) : getColor(task.id, NOTE_COLORS));
-  const contentChanged = content.trim() !== originalContent.current;
+
+  const newDue = dateMode !== "none" ? dueDate : "";
+  const newStart = dateMode === "range" ? startDate : "";
+  const hasChanges =
+    content.trim() !== origContent ||
+    assigneeId !== origAssigneeId ||
+    newDue !== origDueDate ||
+    newStart !== origStartDate;
+
+  const ddayInfo = isTodo ? getDdayInfo(dateMode !== "none" ? dueDate : null) : null;
 
   return (
     <motion.main
@@ -115,7 +169,7 @@ export default function TaskDetailPage() {
         </motion.button>
       </header>
 
-      {/* Card */}
+      {/* Card Preview */}
       <div className="flex justify-center px-5 mb-6">
         <div
           className="relative rounded-2xl overflow-hidden shadow-xl"
@@ -136,10 +190,7 @@ export default function TaskDetailPage() {
           <div className="relative p-4 h-full flex flex-col">
             {isTodo && (
               <div className="flex items-start justify-between mb-2">
-                <button
-                  onClick={handleToggleDone}
-                  className="flex-shrink-0 -m-1 p-1"
-                >
+                <button onClick={handleToggleDone} className="flex-shrink-0 -m-1 p-1">
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isDone ? "border-black/40 bg-black/30" : "border-black/25"}`}>
                     {isDone && (
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -160,8 +211,18 @@ export default function TaskDetailPage() {
                 textDecoration: isDone ? "line-through" : "none",
               }}
             />
-            {isTodo && task.assignee_name && (
-              <p className="text-black/35 text-[10px] font-sans">{task.assignee_name}</p>
+            {isTodo && (
+              <div className="flex items-end justify-between mt-1">
+                <span className="text-black/35 text-[10px] font-sans leading-none">{assigneeName ?? ""}</span>
+                {ddayInfo && (
+                  <span
+                    className="text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none flex-shrink-0"
+                    style={{ backgroundColor: ddayInfo.color }}
+                  >
+                    {ddayInfo.label}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -203,22 +264,169 @@ export default function TaskDetailPage() {
           </span>
         </motion.button>
 
-        {task.assignee_name && (
-          <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl t-elevated"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4"/>
-              <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4" strokeLinecap="round"/>
-            </svg>
-            <span className="t-text-muted text-sm">담당자</span>
-            <span className="t-text text-sm font-semibold ml-auto">{task.assignee_name}</span>
+        {/* 담당자 드롭다운 */}
+        {isTodo && (
+          <div
+            className="rounded-2xl t-elevated overflow-hidden"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.99 }}
+              onClick={() => setShowAssigneePicker(!showAssigneePicker)}
+              className="w-full flex items-center gap-3 px-4 py-3.5"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4"/>
+                <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              <span className="t-text-muted text-sm">담당자</span>
+              <span className="t-text text-sm font-semibold ml-auto mr-1.5">
+                {assigneeName ?? "없음"}
+              </span>
+              <svg
+                width="14" height="14" viewBox="0 0 14 14" fill="none"
+                style={{ transform: showAssigneePicker ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}
+              >
+                <path d="M3 5l4 4 4-4" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </motion.button>
+
+            <AnimatePresence>
+              {showAssigneePicker && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="px-3 pb-2.5 pt-1 flex flex-col gap-0.5"
+                    style={{ borderTop: "1px solid var(--border-mid)" }}
+                  >
+                    <button
+                      onClick={() => { setAssigneeId(null); setAssigneeName(null); setShowAssigneePicker(false); }}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left w-full"
+                      style={{ background: assigneeId === null ? "rgba(0,0,0,0.06)" : "transparent" }}
+                    >
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm t-card flex-shrink-0">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6h8" stroke="currentColor" strokeOpacity="0.4" strokeWidth="1.4" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <span className="t-text text-sm">없음</span>
+                      {assigneeId === null && (
+                        <svg className="ml-auto" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                    {members.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setAssigneeId(m.id); setAssigneeName(m.name); setShowAssigneePicker(false); }}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left w-full"
+                        style={{ background: assigneeId === m.id ? "rgba(0,0,0,0.06)" : "transparent" }}
+                      >
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0"
+                          style={{ backgroundColor: m.color + "55" }}
+                        >
+                          {m.avatar}
+                        </div>
+                        <span className="t-text text-sm">{m.name}</span>
+                        {assigneeId === m.id && (
+                          <svg className="ml-auto" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* 날짜 설정 */}
+        {isTodo && (
+          <div
+            className="rounded-2xl t-elevated overflow-hidden"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+          >
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="3.5" width="12" height="11" rx="2" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4"/>
+                <path d="M5 2v3M11 2v3M2 7.5h12" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              <span className="t-text-muted text-sm">날짜</span>
+              <div
+                className="ml-auto flex rounded-xl overflow-hidden gap-0.5"
+                style={{ background: "rgba(0,0,0,0.06)", padding: "3px" }}
+              >
+                {(["none", "deadline", "range"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setDateMode(mode)}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg transition-all"
+                    style={{
+                      background: dateMode === mode ? "var(--btn-primary-bg)" : "transparent",
+                      color: dateMode === mode ? "var(--btn-primary-fg, #fff)" : "var(--text-muted, rgba(0,0,0,0.45))",
+                    }}
+                  >
+                    {mode === "none" ? "없음" : mode === "deadline" ? "마감일" : "기간"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {dateMode !== "none" && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="px-4 pt-3 pb-4 flex flex-col gap-2.5"
+                    style={{ borderTop: "1px solid var(--border-mid)" }}
+                  >
+                    {dateMode === "range" && (
+                      <div className="flex items-center gap-3">
+                        <span className="t-text-muted text-xs w-10 text-right flex-shrink-0">시작일</span>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="flex-1 t-card rounded-xl px-3 py-2 text-sm t-text outline-none"
+                          style={{ border: "1px solid var(--border-color, rgba(0,0,0,0.1))" }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <span className="t-text-muted text-xs w-10 text-right flex-shrink-0">마감일</span>
+                      <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="flex-1 t-card rounded-xl px-3 py-2 text-sm t-text outline-none"
+                        style={{ border: "1px solid var(--border-color, rgba(0,0,0,0.1))" }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>
 
       {/* Save button */}
       <AnimatePresence>
-        {contentChanged && (
+        {hasChanges && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}

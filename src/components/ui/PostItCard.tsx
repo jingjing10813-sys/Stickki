@@ -17,7 +17,178 @@ export const NOTE_COLORS = [
   "#C8E6C9", "#E1BEE7", "#FFCCBC", "#FFECB3",
 ];
 
-// Stable references prevent framer-motion from restarting animations on re-render
+// 이미지처럼 접힌 쪽지 모양 (sealed/folded state)
+function SealedNoteShape({
+  color,
+  isDropTarget = false,
+  isLongPressTarget = false,
+}: {
+  color: string;
+  isDropTarget?: boolean;
+  isLongPressTarget?: boolean;
+}) {
+  const s = 148;
+  const h = s / 2; // 74
+  const dHalf = 40;
+  const dcx = 110;
+  const dcy = s + 16;
+
+  const svgFilter = isLongPressTarget
+    ? "drop-shadow(0 0 8px rgba(255,59,48,0.7)) drop-shadow(4px 7px 6px rgba(0,0,0,0.18))"
+    : isDropTarget
+    ? "drop-shadow(0 0 6px var(--btn-primary-bg)) drop-shadow(4px 7px 6px rgba(0,0,0,0.18))"
+    : "drop-shadow(4px 7px 6px rgba(0,0,0,0.2))";
+
+  return (
+    <div style={{ position: "relative", width: s, height: dcy + dHalf + 8 }}>
+      <svg
+        width={dcx + dHalf + 8}
+        height={dcy + dHalf + 8}
+        viewBox={`0 0 ${dcx + dHalf + 8} ${dcy + dHalf + 8}`}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          filter: svgFilter,
+          overflow: "visible",
+          transition: "filter 0.15s ease",
+        }}
+      >
+        {/* 위쪽 삼각형 */}
+        <polygon points={`0,0 ${s},0 ${h},${h}`} fill={color} />
+        {/* 왼쪽 삼각형 */}
+        <polygon points={`0,0 ${h},${h} 0,${s}`} fill={color} />
+        {/* 오른쪽 삼각형 (입체감) */}
+        <polygon points={`${s},0 ${s},${s} ${h},${h}`} fill={color} />
+        <polygon points={`${s},0 ${s},${s} ${h},${h}`} fill="rgba(0,0,0,0.18)" />
+        {/* 아래쪽 삼각형 (안쪽 흰 면) */}
+        <polygon points={`0,${s} ${h},${h} ${s},${s}`} fill="rgba(255,255,255,0.58)" />
+        {/* 다이아몬드 꼬리 */}
+        <polygon
+          points={`${dcx},${dcy - dHalf} ${dcx + dHalf},${dcy} ${dcx},${dcy + dHalf} ${dcx - dHalf},${dcy}`}
+          fill={color}
+        />
+      </svg>
+    </div>
+  );
+}
+
+// 쪽지가 펼쳐진 상태
+function OpenNoteView({
+  color,
+  content,
+  assigneeName,
+  isDone,
+  isLongPressTarget,
+  isDropTarget,
+}: {
+  color: string;
+  content: string;
+  assigneeName: string | null;
+  isDone: boolean;
+  isLongPressTarget: boolean;
+  isDropTarget: boolean;
+}) {
+  return (
+    <div
+      style={{
+        width: 148,
+        minHeight: 148,
+        backgroundColor: color,
+        borderRadius: 12,
+        position: "relative",
+        overflow: "hidden",
+        boxShadow: isLongPressTarget
+          ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
+          : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
+        filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
+        clipPath: "polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%)",
+        transition: "box-shadow 0.18s ease",
+      }}
+    >
+      {/* 접힌 모서리 그림자 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: 28,
+          height: 28,
+          background: "linear-gradient(225deg, rgba(0,0,0,0.12) 50%, transparent 50%)",
+          zIndex: 1,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* 드롭 타겟 아웃라인 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 12,
+          outline: "3px solid var(--btn-primary-bg)",
+          outlineOffset: 2,
+          opacity: isDropTarget ? 1 : 0,
+          transition: "opacity 80ms ease",
+          zIndex: 1,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* 줄 텍스처 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
+          opacity: 0.5,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* 내용 */}
+      <div style={{ padding: "14px 12px 12px", position: "relative", zIndex: 2 }}>
+        <motion.p
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 26 }}
+          className="font-motto text-black/80 leading-snug"
+          style={{
+            fontSize: content.length > 30 ? 12 : 14,
+            textDecoration: isDone ? "line-through" : "none",
+            minHeight: 80,
+          }}
+        >
+          {content}
+        </motion.p>
+        {assigneeName && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-black/35 text-[10px] font-sans mt-2"
+          >
+            {assigneeName}
+          </motion.p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getDdayInfo(dueDate: string | null | undefined): { label: string; color: string } | null {
+  if (!dueDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return { label: "D-day", color: "#EF4444" };
+  if (diff < 0) return { label: `D+${-diff}`, color: "#EF4444" };
+  if (diff <= 4) return { label: `D-${diff}`, color: "#F97316" };
+  return { label: `D-${diff}`, color: "#6B7280" };
+}
+
 const SWAP_SCALE = [0.82, 1.06, 1];
 const DRAG_ROTATE_DELTA = 6;
 
@@ -56,7 +227,9 @@ function PostItCard({
 }: PostItCardProps) {
   const isPinned = task.is_pinned ?? false;
   const [showPicker, setShowPicker] = useState(false);
+  const [isNoteOpen, setIsNoteOpen] = useState(false);
   const isTodo = task.type === "todo";
+  const ddayInfo = isTodo ? getDdayInfo(task.due_date) : null;
   const isDone = task.status === "done";
   const color = task.color ?? (isTodo
     ? getColor(task.id, TODO_COLORS)
@@ -72,8 +245,7 @@ function PostItCard({
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const longPressFiredRef = useRef(false);
 
-  // Stable delete rotation — deterministic from task.id to avoid re-render flicker
-  const deleteRotRef = useRef(task.rotation + (task.id.charCodeAt(0) % 2 === 0 ? 18 : -18));
+  const deleteRot = task.rotation + (task.id.charCodeAt(0) % 2 === 0 ? 18 : -18);
 
   async function handleToggleDone() {
     if (!isTodo) return;
@@ -100,7 +272,7 @@ function PostItCard({
       className="relative"
       style={{
         width: 148,
-        paddingBottom: isTodo ? 0 : 20,
+        paddingBottom: 20,
         zIndex: isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
         pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
         touchAction: "none",
@@ -130,7 +302,6 @@ function PostItCard({
         longPressTimerRef.current = setTimeout(() => {
           longPressFiredRef.current = true;
           longPressTimerRef.current = null;
-          // 드래그는 유지 — 휴지통으로 끌 수 있도록
           onLongPress?.(task.id);
         }, 800);
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -153,7 +324,12 @@ function PostItCard({
         if (longPressFiredRef.current) return;
         singleTapTimerRef.current = setTimeout(() => {
           singleTapTimerRef.current = null;
-          onTap?.(task.id);
+          if (!isTodo) {
+            // 쪽지: 탭하면 접힘/펼침 토글
+            setIsNoteOpen((prev) => !prev);
+          } else {
+            onTap?.(task.id);
+          }
         }, 280);
       }}
     >
@@ -182,7 +358,7 @@ function PostItCard({
             ? {
                 opacity: 0,
                 y: 320,
-                rotate: deleteRotRef.current,
+                rotate: deleteRot,
                 scale: 0.55,
                 transition: { duration: 0.48, ease: [0.4, 0, 1, 1] },
               }
@@ -224,59 +400,81 @@ function PostItCard({
           </motion.div>
         )}
 
-        {/* 클립 (쪽지, 고정 아닐 때) */}
-        {!isTodo && !isPinned && (
-          <motion.div
-            initial={{ scale: 0, y: -6 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 600, damping: 18, delay: 0.08 }}
-            className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-            style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.25))" }}
-          >
-            <svg width="14" height="26" viewBox="0 0 14 26" fill="none">
-              <path d="M7 24C3.7 24 1 21.3 1 18V6.5C1 4 3 2 5.5 2C8 2 10 4 10 6.5V18C10 19.7 8.7 21 7 21C5.3 21 4 19.7 4 18V7" stroke="#90A4AE" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-            </svg>
-          </motion.div>
-        )}
-
         {/* 카드 본체 */}
-        <div
-          className="rounded-xl overflow-visible select-none"
-          style={{
-            backgroundColor: color,
-            aspectRatio: isTodo ? "1/1" : "3/4",
-            boxShadow: isLongPressTarget
-              ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
-              : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
-            filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
-            transition: "box-shadow 0.18s ease",
-          }}
-        >
+        {!isTodo ? (
+          /* 쪽지: 접힌 상태 ↔ 펼친 상태 */
+          <AnimatePresence mode="wait">
+            {!isNoteOpen ? (
+              <motion.div
+                key="sealed"
+                initial={{ opacity: 0, scale: 0.82 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.13 } }}
+                transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              >
+                <SealedNoteShape
+                  color={color}
+                  isDropTarget={isDropTarget}
+                  isLongPressTarget={isLongPressTarget}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="open"
+                initial={{ opacity: 0, scale: 0.88, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.88, y: 8, transition: { duration: 0.13 } }}
+                transition={{ type: "spring", stiffness: 360, damping: 26 }}
+              >
+                <OpenNoteView
+                  color={color}
+                  content={task.content}
+                  assigneeName={task.assignee_name}
+                  isDone={isDone}
+                  isLongPressTarget={isLongPressTarget ?? false}
+                  isDropTarget={isDropTarget ?? false}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        ) : (
+          /* 할일: 기존 카드 그대로 */
           <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
+            className="rounded-xl overflow-visible select-none"
             style={{
-              background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-              opacity: 0.5,
+              backgroundColor: color,
+              aspectRatio: "1/1",
+              boxShadow: isLongPressTarget
+                ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
+                : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
+              filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
+              transition: "box-shadow 0.18s ease",
             }}
-          />
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              outline: "3px solid var(--btn-primary-bg)",
-              outlineOffset: 2,
-              opacity: isDropTarget ? 1 : 0,
-              transition: "opacity 80ms ease",
-            }}
-          />
+          >
+            <div
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{
+                background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
+                opacity: 0.5,
+              }}
+            />
+            <div
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{
+                outline: "3px solid var(--btn-primary-bg)",
+                outlineOffset: 2,
+                opacity: isDropTarget ? 1 : 0,
+                transition: "opacity 80ms ease",
+              }}
+            />
 
-          <div className="relative p-3 h-full flex flex-col">
-            {isTodo && (
+            <div className="relative p-3 h-full flex flex-col">
               <div className="flex items-start justify-between mb-2">
                 <button
                   onPointerDown={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
                   onTouchStart={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); handleToggleDone(); }}
-                  className={`relative flex-shrink-0 mt-0.5 -m-1.5 p-1.5`}
+                  className="relative flex-shrink-0 mt-0.5 -m-1.5 p-1.5"
                   style={{ touchAction: "none" }}
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -299,23 +497,33 @@ function PostItCard({
                   {memberAvatar ?? "🐾"}
                 </motion.span>
               </div>
-            )}
 
-            <p
-              className="font-motto text-black/80 leading-snug flex-1"
-              style={{
-                textDecoration: isDone ? "line-through" : "none",
-                fontSize: task.content.length > 30 ? "12px" : "14px",
-              }}
-            >
-              {task.content}
-            </p>
+              <p
+                className="font-motto text-black/80 leading-snug flex-1"
+                style={{
+                  textDecoration: isDone ? "line-through" : "none",
+                  fontSize: task.content.length > 30 ? "12px" : "14px",
+                }}
+              >
+                {task.content}
+              </p>
 
-            {isTodo && task.assignee_name && (
-              <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
-            )}
+              {(task.assignee_name || ddayInfo) && (
+                <div className="flex items-end justify-between mt-1">
+                  <span className="text-black/35 text-[10px] font-sans leading-none">{task.assignee_name ?? ""}</span>
+                  {ddayInfo && (
+                    <span
+                      className="text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none flex-shrink-0"
+                      style={{ backgroundColor: ddayInfo.color }}
+                    >
+                      {ddayInfo.label}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 반응 이모지 뱃지 */}
         <AnimatePresence>
