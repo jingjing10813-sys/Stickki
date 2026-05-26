@@ -20,7 +20,7 @@ export default function MyPage() {
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [me, setMe] = useState<Member | null>(null);
 
-  const [editingName, setEditingName] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -84,7 +84,7 @@ export default function MyPage() {
         .eq("assignee_name", oldName);
       setMyTasks((prev) => prev.map((t) => ({ ...t, assignee_name: newName })));
     }
-    setEditingName(false);
+    setShowEditModal(false);
   }
 
   async function handleSignOut() {
@@ -153,96 +153,36 @@ export default function MyPage() {
           transition={{ type: "spring", stiffness: 300, damping: 28 }}
           className="glass rounded-3xl px-5 pt-7 pb-5"
         >
-          <AnimatePresence mode="wait">
-            {editingName ? (
-              /* 편집 모드 */
-              <motion.div key="editing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
-                <div className="grid grid-cols-8 gap-1.5">
-                  {AVATARS.map((av) => (
-                    <motion.button
-                      key={av}
-                      whileTap={{ scale: 0.85 }}
-                      onClick={() => setSelectedAvatar(av)}
-                      className="w-full aspect-square rounded-xl flex items-center justify-center text-xl"
-                      style={{
-                        background: selectedAvatar === av ? "var(--card-hover)" : "var(--card)",
-                        boxShadow: selectedAvatar === av ? "0 0 0 2px var(--btn-primary-bg)" : "none",
-                      }}
-                    >
-                      {av}
-                    </motion.button>
-                  ))}
-                </div>
-                <input
-                  autoFocus
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                  className="w-full t-card rounded-2xl px-4 py-3 t-text text-center text-sm outline-none"
-                  style={{ border: "1px solid var(--border-color)" }}
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setEditingName(false); setNameInput(me.name); setSelectedAvatar(me.avatar); }}
-                    className="flex-1 py-3 rounded-2xl t-btn-secondary font-semibold text-sm"
-                  >
-                    취소
-                  </button>
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleSave}
-                    disabled={!nameInput.trim()}
-                    className="flex-1 py-3 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30"
-                  >
-                    저장
-                  </motion.button>
-                </div>
-              </motion.div>
-            ) : (
-              /* 표시 모드 */
-              <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center">
-                {/* 아바타 */}
-                <motion.div
-                  key={selectedAvatar}
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-5xl mb-3"
-                  style={{
-                    background: me.color + "88",
-                    boxShadow: `0 4px 20px ${me.color}44`,
-                  }}
-                >
-                  {me.avatar}
-                </motion.div>
-
-                {/* 이름 */}
-                <p className="font-display font-bold t-text text-2xl mb-1">{me.name}</p>
-                <p className="t-text-muted text-xs mb-4">{user?.email}</p>
-
-                {/* 내 정보 수정 버튼 */}
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setEditingName(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold t-text-sub"
-                  style={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border-color)",
-                  }}
-                >
-                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none" className="opacity-50">
-                    <path d="M2 10.5L4.5 10L10.5 4L10 3.5L4 9.5L2 10.5Z" fill="currentColor"/>
-                    <path d="M10 3.5L10.5 4L11.5 3L11 2.5L10 3.5Z" fill="currentColor"/>
-                  </svg>
-                  내 정보 수정
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="flex flex-col items-center">
+            <motion.div
+              key={me.avatar}
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 22 }}
+              className="w-20 h-20 rounded-full flex items-center justify-center text-5xl mb-3"
+              style={{ background: me.color + "88", boxShadow: `0 4px 20px ${me.color}44` }}
+            >
+              {me.avatar}
+            </motion.div>
+            <p className="font-display font-bold t-text text-2xl mb-1">{me.name}</p>
+            <p className="t-text-muted text-xs mb-4">{user?.email}</p>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setNameInput(me.name); setSelectedAvatar(me.avatar); setShowEditModal(true); }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold t-text-sub"
+              style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
+            >
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none" className="opacity-50">
+                <path d="M2 10.5L4.5 10L10.5 4L10 3.5L4 9.5L2 10.5Z" fill="currentColor"/>
+                <path d="M10 3.5L10.5 4L11.5 3L11 2.5L10 3.5Z" fill="currentColor"/>
+              </svg>
+              내 정보 수정
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* ── 통계 퀵 row ── */}
-        {!editingName && (
+        {true && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -342,6 +282,95 @@ export default function MyPage() {
         </motion.div>
 
       </div>
+
+      {/* 정보 수정 모달 */}
+      <AnimatePresence>
+        {showEditModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center"
+          >
+            <div
+              className="absolute inset-0"
+              style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.4)" }}
+              onClick={() => setShowEditModal(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 380, damping: 40 }}
+              className="relative w-full max-w-lg t-elevated rounded-t-3xl pt-3 pb-10 px-5 z-10"
+              style={{ boxShadow: "0 -20px 60px rgba(0,0,0,0.3)" }}
+            >
+              <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "var(--border-mid)" }} />
+
+              {/* 현재 아바타 미리보기 */}
+              <div className="flex justify-center mb-5">
+                <motion.div
+                  key={selectedAvatar}
+                  initial={{ scale: 0.7 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
+                  style={{ background: me.color + "88", boxShadow: `0 4px 20px ${me.color}44` }}
+                >
+                  {selectedAvatar}
+                </motion.div>
+              </div>
+
+              {/* 아바타 선택 */}
+              <div className="grid grid-cols-8 gap-1.5 mb-5">
+                {AVATARS.map((av) => (
+                  <motion.button
+                    key={av}
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => setSelectedAvatar(av)}
+                    className="w-full aspect-square rounded-xl flex items-center justify-center text-xl"
+                    style={{
+                      background: selectedAvatar === av ? "var(--card-hover)" : "var(--card)",
+                      boxShadow: selectedAvatar === av ? "0 0 0 2px var(--btn-primary-bg)" : "none",
+                    }}
+                  >
+                    {av}
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* 이름 입력 */}
+              <p className="t-text font-semibold text-sm mb-2">이름</p>
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                className="w-full t-card rounded-2xl px-4 py-3 t-text text-sm outline-none mb-4"
+                style={{ border: "1px solid var(--border-color)" }}
+              />
+
+              {/* 버튼 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl t-btn-secondary font-semibold text-sm"
+                >
+                  취소
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSave}
+                  disabled={!nameInput.trim()}
+                  className="flex-1 py-3.5 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30"
+                >
+                  저장
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 방 나가기 확인 모달 */}
       <AnimatePresence>
