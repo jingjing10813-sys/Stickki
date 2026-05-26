@@ -205,8 +205,23 @@ export default function WhiteboardPage() {
   const gridNaturalW = cols * CELL_W + PADDING * 2;
   const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
 
+  const [viewAll, setViewAll] = useState(true);
+  const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
-  const gridScale = fitScale;
+  const gridScale = viewAll ? fitScale : scrollScale;
+
+  // 캔버스 더블탭 감지
+  const canvasLastTapRef = useRef(0);
+  function handleCanvasDoubleTap(e: React.MouseEvent | React.TouchEvent) {
+    if ((e.target as Element).closest("[data-card-id]")) return; // 카드 위는 무시
+    const now = Date.now();
+    if (now - canvasLastTapRef.current < 300) {
+      setViewAll((v) => !v);
+      canvasLastTapRef.current = 0;
+    } else {
+      canvasLastTapRef.current = now;
+    }
+  }
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [setupName, setSetupName] = useState("");
@@ -490,13 +505,19 @@ export default function WhiteboardPage() {
         )}
       </div>
 
-      <div ref={canvasRef} className="flex-1 relative" style={{ minHeight: 0, overflow: "hidden", padding: "20px 20px 40px 20px" }}>
+      <div
+        ref={canvasRef}
+        className="flex-1 relative"
+        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}
+        onClick={handleCanvasDoubleTap}
+        onTouchEnd={handleCanvasDoubleTap}
+      >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
           </div>
         ) : (
-          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
             <div style={{ width: gridNaturalW * gridScale, height: gridNaturalH * gridScale, position: "relative", flexShrink: 0 }}>
               <div style={{ width: gridNaturalW, transform: `scale(${gridScale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                 {(() => {
