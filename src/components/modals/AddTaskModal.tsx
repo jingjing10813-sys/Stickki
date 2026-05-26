@@ -98,11 +98,18 @@ export default function AddTaskModal({ groupId, members, onClose, newPosition }:
           <div className="relative flex items-start justify-between gap-3">
             <textarea
               autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={type === "todo" ? "할 일을 적어요..." : "하고 싶은 말을 적어요..."}
               rows={3}
               className="flex-1 bg-transparent font-motto text-lg text-black/80 placeholder-black/30 outline-none resize-none"
+              style={{
+                WebkitBoxShadow: "0 0 0 1000px transparent inset",
+                WebkitTextFillColor: "rgba(0,0,0,0.8)",
+              }}
             />
             {type === "todo" && selectedMember && (
               <motion.div

@@ -111,3 +111,15 @@ body {
 .font-motto {
   font-family: var(--font-motto);
 }
+
+/* ── Autofill yellow 제거 (iOS Safari / Chrome) ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}

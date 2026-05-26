@@ -17,13 +17,32 @@ export default function OnboardingPage() {
   const { loading: authLoading, user } = useAuth();
   const [step, setStep] = useState<Step>("landing");
 
-  // 로그인 후 마지막 방으로 자동 복귀
+  // 로그인 후 마지막 방으로 자동 복귀 (localStorage → DB 순으로 조회)
   useEffect(() => {
     if (authLoading || !user) return;
-    const lastGroupId = localStorage.getItem("last_group_id");
-    if (lastGroupId) {
-      router.replace(`/${lastGroupId}`);
+
+    async function redirectToGroup() {
+      // 1) localStorage에 저장된 방이 있으면 바로 이동
+      const lastGroupId = localStorage.getItem("last_group_id");
+      if (lastGroupId) {
+        router.replace(`/${lastGroupId}`);
+        return;
+      }
+      // 2) DB에서 내가 속한 그룹 조회
+      const { data } = await supabase
+        .from("groups")
+        .select("id")
+        .filter("members", "cs", JSON.stringify([{ id: user!.id }]))
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const groupId = data?.[0]?.id;
+      if (groupId) {
+        localStorage.setItem("last_group_id", groupId);
+        router.replace(`/${groupId}`);
+      }
     }
+
+    redirectToGroup();
   }, [authLoading, user, router]);
   const [roomName, setRoomName] = useState("");
   const [motto, setMotto] = useState("");

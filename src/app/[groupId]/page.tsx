@@ -489,26 +489,9 @@ export default function WhiteboardPage() {
                   const pinned = [...tasks].filter((t) => t.is_pinned).sort((a, b) => a.position_x - b.position_x);
                   const normal = [...tasks].filter((t) => !t.is_pinned).sort((a, b) => a.position_x - b.position_x);
                   const sorted = [...pinned, ...normal];
-                  const pinnedCols = pinned.length > 0 ? Math.max(1, Math.ceil(pinned.length / FIXED_ROWS)) : 0;
-                  const pinnedAreaW = pinnedCols * CELL_W + PADDING;
 
                   return (
                     <>
-                      {pinnedCols > 0 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            width: pinnedAreaW,
-                            height: gridNaturalH,
-                            background: "rgba(255,213,0,0.06)",
-                            border: "1px solid rgba(255,213,0,0.14)",
-                            borderRadius: 16,
-                            pointerEvents: "none",
-                          }}
-                        />
-                      )}
                       {sorted.map((task, i) => {
                         const { x, y } = computeGridPos(i, task.id);
                         const member = (group.members ?? []).find((m) => m.name === task.assignee_name);
