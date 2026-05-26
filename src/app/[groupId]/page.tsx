@@ -471,7 +471,7 @@ export default function WhiteboardPage() {
         </div>
       </header>
 
-      <div className="flex-shrink-0 flex items-center justify-center pb-2 px-5">
+      <div className="flex-shrink-0 flex items-center justify-center px-5" style={{ marginBottom: 0 }}>
         {editingMotto ? (
           <input
             autoFocus
@@ -494,7 +494,7 @@ export default function WhiteboardPage() {
       </div>
 
       {tasks.length > 0 && (
-        <div className="flex-shrink-0 flex items-center justify-end px-5 pb-2">
+        <div className="flex-shrink-0 flex items-center justify-end px-5" style={{ paddingTop: 10, paddingBottom: 0 }}>
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setViewAll((v) => !v)}
@@ -526,7 +526,7 @@ export default function WhiteboardPage() {
       <div
         ref={canvasRef}
         className="flex-1 relative"
-        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}
+        style={{ minHeight: 0, overflowX: viewAll ? "visible" : "auto", overflowY: viewAll ? "visible" : "hidden", padding: "0px 20px 40px 20px" }}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
