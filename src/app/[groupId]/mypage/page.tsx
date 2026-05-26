@@ -9,6 +9,12 @@ import type { Group, Member, Task } from "@/types";
 import { useTheme } from "@/lib/theme";
 
 const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧","🦁","🐮","🐷","🐙","🦋","🐺","🦝"];
+const AVATAR_COLORS: Record<string, string> = {
+  "🐶": "#FF9F43", "🐱": "#FF9FF3", "🐻": "#C8A882", "🦊": "#FF6B6B",
+  "🐸": "#6BCB77", "🐼": "#A8A8A8", "🐨": "#B8C4D0", "🐯": "#FECA57",
+  "🐧": "#48DBFB", "🦁": "#FFD166", "🐮": "#E8D5B7", "🐷": "#FFB8C6",
+  "🐙": "#C77DFF", "🦋": "#54A0FF", "🐺": "#9EAAB5", "🦝": "#7B8FA1",
+};
 
 export default function MyPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -63,12 +69,13 @@ export default function MyPage() {
     if (!group || !me || !user || !nameInput.trim()) return;
     const oldName = me.name;
     const newName = nameInput.trim();
+    const newColor = AVATAR_COLORS[selectedAvatar] ?? me.color;
 
-    await supabase.from("profiles").update({ name: newName, avatar: selectedAvatar }).eq("id", user.id);
+    await supabase.from("profiles").update({ name: newName, avatar: selectedAvatar, color: newColor }).eq("id", user.id);
     await refreshProfile();
 
     const updatedMembers = (group.members ?? []).map((m) =>
-      m.id === user.id ? { ...m, name: newName, avatar: selectedAvatar } : m
+      m.id === user.id ? { ...m, name: newName, avatar: selectedAvatar, color: newColor } : m
     );
     const { data } = await supabase.from("groups").update({ members: updatedMembers })
       .eq("id", group.id).select().single();
@@ -315,7 +322,10 @@ export default function MyPage() {
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 22 }}
                   className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
-                  style={{ background: me.color + "88", boxShadow: `0 4px 20px ${me.color}44` }}
+                  style={{
+                    background: (AVATAR_COLORS[selectedAvatar] ?? me.color) + "88",
+                    boxShadow: `0 4px 20px ${(AVATAR_COLORS[selectedAvatar] ?? me.color)}44`,
+                  }}
                 >
                   {selectedAvatar}
                 </motion.div>
