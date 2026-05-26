@@ -57,6 +57,13 @@ export default function WhiteboardPage() {
   const dragActiveRef = useRef(false);
   const dropTargetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 휴지통 드래그-삭제 상태
+  const [longPressId, setLongPressId] = useState<string | null>(null);
+  const longPressIdRef = useRef<string | null>(null);
+  const [isOverTrash, setIsOverTrash] = useState(false);
+  const isOverTrashRef = useRef(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
       if (!draggingIdRef.current) return;
@@ -69,6 +76,17 @@ export default function WhiteboardPage() {
         setDraggingId(draggingIdRef.current);
       }
       if (!dragActiveRef.current) return;
+
+      // 롱프레스 모드: 휴지통 존 감지
+      if (longPressIdRef.current) {
+        const over = e.clientY > window.innerHeight - 100;
+        if (over !== isOverTrashRef.current) {
+          isOverTrashRef.current = over;
+          setIsOverTrash(over);
+        }
+        return; // 카드 스왑 감지 스킵
+      }
+
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const cardEl = el?.closest("[data-card-id]") as HTMLElement | null;
       const targetId = cardEl?.dataset.cardId ?? null;
@@ -80,12 +98,36 @@ export default function WhiteboardPage() {
       if (!draggingIdRef.current) return;
       const dragging = draggingIdRef.current;
       const wasActive = dragActiveRef.current;
+      const longId = longPressIdRef.current;
+      const wasOverTrash = isOverTrashRef.current;
+
       draggingIdRef.current = null;
       dragStartPosRef.current = null;
       dragActiveRef.current = false;
+      longPressIdRef.current = null;
+      isOverTrashRef.current = false;
       setDraggingId(null);
       setDropTargetId(null);
+      setLongPressId(null);
+      setIsOverTrash(false);
+
       if (!wasActive) return;
+
+      // 휴지통에 드롭 → 삭제
+      if (longId && wasOverTrash) {
+        setDeletingTaskId(longId);
+        setTimeout(() => {
+          setTasks((prev) => prev.filter((t) => t.id !== longId));
+          supabase.from("tasks").delete().eq("id", longId);
+          setDeletingTaskId(null);
+        }, 520);
+        return;
+      }
+
+      // 롱프레스 모드였지만 휴지통 밖에서 놓음 → 아무것도 안 함
+      if (longId) return;
+
+      // 일반 드래그: 카드 스왑
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const cardEl = el?.closest("[data-card-id]") as HTMLElement | null;
       const targetId = cardEl?.dataset.cardId;
@@ -113,8 +155,12 @@ export default function WhiteboardPage() {
       draggingIdRef.current = null;
       dragStartPosRef.current = null;
       dragActiveRef.current = false;
+      longPressIdRef.current = null;
+      isOverTrashRef.current = false;
       setDraggingId(null);
       setDropTargetId(null);
+      setLongPressId(null);
+      setIsOverTrash(false);
     }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -132,6 +178,15 @@ export default function WhiteboardPage() {
     dragActiveRef.current = false;
     setDropTargetId(null);
   }, []);
+
+  const handleCardLongPress = useCallback((id: string) => {
+    longPressIdRef.current = id;
+    setLongPressId(id);
+  }, []);
+
+  const handleCardTap = useCallback((id: string) => {
+    router.push(`/${groupId}/${id}`);
+  }, [groupId, router]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -469,7 +524,11 @@ export default function WhiteboardPage() {
                               isDragging={draggingId === task.id}
                               isDropTarget={dropTargetId === task.id}
                               isSwapping={isSwapping}
+                              isBeingDeleted={deletingTaskId === task.id}
+                              isLongPressTarget={longPressId === task.id}
                               onDragStart={handleCardDragStart}
+                              onLongPress={handleCardLongPress}
+                              onTap={handleCardTap}
                             />
                           </div>
                         );
@@ -485,25 +544,89 @@ export default function WhiteboardPage() {
 
       <MemberBar members={group.members ?? []} inviteCode={group.invite_code} onRemove={handleRemoveMember} />
 
-      <motion.button
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.92 }}
-        onClick={() => {
-          const col = Math.floor(tasks.length / FIXED_ROWS);
-          const row = tasks.length % FIXED_ROWS;
-          const sx = Math.round((Math.random() - 0.5) * SCATTER * 2);
-          const sy = Math.round((Math.random() - 0.5) * SCATTER * 2);
-          setNextPosition({ x: PADDING + col * CELL_W + sx, y: PADDING + row * CELL_H + sy });
-          setShowModal(true);
-        }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
-        className="fixed bottom-8 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: "var(--fab-bg)", boxShadow: "0 4px 24px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.15)" }}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M9 2v14M2 9h14" stroke="var(--fab-icon)" strokeWidth="2.2" strokeLinecap="round"/>
-        </svg>
-      </motion.button>
+      {/* FAB — 휴지통 존 활성화 시 숨김 */}
+      <AnimatePresence>
+        {!longPressId && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => {
+              const col = Math.floor(tasks.length / FIXED_ROWS);
+              const row = tasks.length % FIXED_ROWS;
+              const sx = Math.round((Math.random() - 0.5) * SCATTER * 2);
+              const sy = Math.round((Math.random() - 0.5) * SCATTER * 2);
+              setNextPosition({ x: PADDING + col * CELL_W + sx, y: PADDING + row * CELL_H + sy });
+              setShowModal(true);
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            className="fixed bottom-8 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "var(--fab-bg)", boxShadow: "0 4px 24px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.15)" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 2v14M2 9h14" stroke="var(--fab-icon)" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* 휴지통 존 — 롱프레스 시 하단에 나타남 */}
+      <AnimatePresence>
+        {longPressId && (
+          <motion.div
+            key="trash-zone"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-center pointer-events-none"
+            style={{
+              height: 130,
+              background: "linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.65) 55%, transparent 100%)",
+            }}
+          >
+            <motion.div
+              animate={
+                isOverTrash
+                  ? { scale: 1.35, y: -6 }
+                  : { scale: 1, y: 0 }
+              }
+              transition={{ type: "spring", stiffness: 420, damping: 22 }}
+              className="flex flex-col items-center gap-1.5 pb-8"
+            >
+              {/* 휴지통 아이콘 */}
+              <motion.div
+                animate={isOverTrash ? { rotate: [-4, 4, -4, 0] } : { rotate: 0 }}
+                transition={isOverTrash ? { duration: 0.35, ease: "easeInOut" } : {}}
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                    stroke={isOverTrash ? "#FF3B30" : "#FF6B6B"}
+                    strokeWidth={isOverTrash ? "2.4" : "1.9"}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M10 11v6M14 11v6"
+                    stroke={isOverTrash ? "#FF3B30" : "#FF6B6B"}
+                    strokeWidth={isOverTrash ? "2.4" : "1.9"}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </motion.div>
+              <span
+                className="text-xs font-medium"
+                style={{ color: isOverTrash ? "#FF3B30" : "rgba(255,255,255,0.45)" }}
+              >
+                {isOverTrash ? "놓으면 삭제" : "여기로 끌어오면 삭제"}
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showModal && (

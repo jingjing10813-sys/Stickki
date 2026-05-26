@@ -34,12 +34,11 @@ export default function LoginPage() {
     });
   }
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setLoading(true);
     setError("");
-
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("이메일 또는 비밀번호가 올바르지 않아요.");
@@ -54,32 +53,25 @@ export default function LoginPage() {
       {/* 장식용 포스트잇들 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          initial={{ opacity: 0, rotate: -8, y: -20 }}
-          animate={{ opacity: 1, rotate: -8, y: 0 }}
+          initial={{ opacity: 0, rotate: -8 }}
+          animate={{ opacity: 1, rotate: -8 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 24 }}
           className="absolute top-16 -left-4 w-28 h-28 rounded-xl"
           style={{ backgroundColor: "#FFF9C4", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
         />
         <motion.div
-          initial={{ opacity: 0, rotate: 12, y: -20 }}
-          animate={{ opacity: 1, rotate: 12, y: 0 }}
+          initial={{ opacity: 0, rotate: 12 }}
+          animate={{ opacity: 1, rotate: 12 }}
           transition={{ delay: 0.18, type: "spring", stiffness: 200, damping: 24 }}
           className="absolute top-24 -right-6 w-24 h-24 rounded-xl"
           style={{ backgroundColor: "#F8BBD9", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
         />
         <motion.div
-          initial={{ opacity: 0, rotate: 6, y: 20 }}
-          animate={{ opacity: 1, rotate: 6, y: 0 }}
+          initial={{ opacity: 0, rotate: 6 }}
+          animate={{ opacity: 1, rotate: 6 }}
           transition={{ delay: 0.24, type: "spring", stiffness: 200, damping: 24 }}
           className="absolute bottom-24 -left-3 w-20 h-20 rounded-xl"
           style={{ backgroundColor: "#B2EBF2", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-        />
-        <motion.div
-          initial={{ opacity: 0, rotate: -10, y: 20 }}
-          animate={{ opacity: 1, rotate: -10, y: 0 }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 24 }}
-          className="absolute bottom-32 -right-4 w-24 h-24 rounded-xl"
-          style={{ backgroundColor: "#C8E6C9", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
         />
       </div>
 
@@ -89,22 +81,18 @@ export default function LoginPage() {
         transition={{ type: "spring", stiffness: 280, damping: 28 }}
         className="w-full max-w-sm relative"
       >
-        {/* 로고 */}
-        <div className="text-center mb-10">
-          <h1 className="font-display font-bold t-text text-4xl tracking-tight mb-2">
-            Stickki
-          </h1>
+        <div className="text-center mb-8">
+          <h1 className="font-display font-bold t-text text-4xl tracking-tight mb-2">Stickki</h1>
           <p className="font-motto t-text-muted text-base">우리 사이, 더 끈끈하게.</p>
         </div>
 
-        {/* 폼 카드 */}
         <div
           className="t-elevated rounded-3xl px-6 py-8"
           style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}
         >
-          <h2 className="font-display font-bold t-text text-xl mb-6">로그인</h2>
+          <h2 className="font-display font-bold t-text text-xl mb-6">이메일 로그인</h2>
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="t-text-muted text-xs font-medium">이메일</label>
               <input
@@ -112,7 +100,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="hello@stickki.com"
-                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none transition-colors"
+                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none"
                 style={{ border: "1px solid var(--border-color)" }}
                 required
               />
@@ -125,7 +113,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none transition-colors"
+                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none"
                 style={{ border: "1px solid var(--border-color)" }}
                 required
               />
@@ -164,6 +152,7 @@ export default function LoginPage() {
 
           {/* 소셜 동그라미 3개 */}
           <div className="flex justify-center gap-4">
+            {/* 카카오 */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleKakaoLogin}
@@ -177,6 +166,7 @@ export default function LoginPage() {
               </svg>
             </motion.button>
 
+            {/* 애플 */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleAppleLogin}
@@ -188,6 +178,7 @@ export default function LoginPage() {
               </svg>
             </motion.button>
 
+            {/* 구글 */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleGoogleLogin}

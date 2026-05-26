@@ -37,7 +37,6 @@ interface PostItCardProps {
   isBeingDeleted?: boolean;
   isLongPressTarget?: boolean;
   onDragStart?: (id: string, clientX: number, clientY: number) => void;
-  onDragCancel?: () => void;
   onLongPress?: (id: string) => void;
   onTap?: (id: string) => void;
 }
@@ -52,7 +51,6 @@ function PostItCard({
   isBeingDeleted,
   isLongPressTarget,
   onDragStart,
-  onDragCancel,
   onLongPress,
   onTap,
 }: PostItCardProps) {

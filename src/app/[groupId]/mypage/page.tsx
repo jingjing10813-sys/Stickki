@@ -52,7 +52,8 @@ export default function MyPage() {
         if (data) {
           setMyTasks((prev) => {
             const todos = prev.filter((t) => t.type === "todo");
-            return [...todos, ...data.filter((n) => !todos.find((t) => t.id === n.id))];
+            const notes = data.filter((n) => !todos.find((t) => t.id === n.id));
+            return [...todos, ...notes];
           });
         }
       });
@@ -274,14 +275,18 @@ export default function MyPage() {
           <p className="t-text-muted text-xs font-medium px-4 pt-4 pb-2">내 활동</p>
 
           {[
-            { label: "할 일", count: pendingTasks.length, sub: "진행 중인 항목" },
-            { label: "완료", count: doneTasks.length, sub: "완료한 항목" },
-            { label: "받은 쪽지", count: receivedNotes.length, sub: "받은 쪽지" },
+            { label: "할 일",    count: pendingTasks.length,  sub: "진행 중인 항목", filter: "todo" },
+            { label: "완료",     count: doneTasks.length,     sub: "완료한 항목",   filter: "done" },
+            { label: "받은 쪽지", count: receivedNotes.length, sub: "받은 쪽지",    filter: "note" },
           ].map((item, i) => (
             <div key={item.label}>
               {i > 0 && <div className="mx-4" style={{ height: 1, backgroundColor: "var(--border-color)" }} />}
-              <div className="flex items-center justify-between px-4 py-3.5">
-                <div>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => router.push(`/${groupId}/list?filter=${item.filter}`)}
+                className="w-full flex items-center justify-between px-4 py-3.5"
+              >
+                <div className="text-left">
                   <p className="t-text text-sm font-medium">{item.label}</p>
                   <p className="t-text-faint text-xs mt-0.5">{item.sub}</p>
                 </div>
@@ -296,7 +301,7 @@ export default function MyPage() {
                     <path d="M1 1l4 4.5L1 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.3"/>
                   </svg>
                 </div>
-              </div>
+              </motion.button>
             </div>
           ))}
         </motion.div>
@@ -392,4 +397,3 @@ export default function MyPage() {
     </main>
   );
 }
-

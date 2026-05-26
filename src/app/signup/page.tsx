@@ -57,6 +57,7 @@ export default function SignupPage() {
 
   return (
     <main className="min-h-screen dot-pattern flex flex-col items-center justify-center px-5">
+      {/* 장식용 포스트잇들 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           initial={{ opacity: 0, rotate: -8 }}
@@ -128,9 +129,10 @@ export default function SignupPage() {
 
             {/* 동의 조항 */}
             <div
-              className="flex flex-col gap-3 rounded-2xl px-4 py-4"
+              className="flex flex-col gap-3 rounded-2xl px-4 py-4 mt-1"
               style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
             >
+              {/* 전체 동의 */}
               <button
                 type="button"
                 onClick={() => handleAgreeAll(!agreeAll)}
@@ -142,24 +144,39 @@ export default function SignupPage() {
 
               <div className="h-px" style={{ backgroundColor: "var(--border-color)" }} />
 
+              {/* 이용약관 (필수) */}
               <div className="flex items-center justify-between">
-                <button type="button" onClick={() => handleIndividual("terms", !agreeTerms)} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleIndividual("terms", !agreeTerms)}
+                  className="flex items-center gap-3"
+                >
                   <CheckCircle checked={agreeTerms} small />
                   <span className="t-text-muted text-xs">서비스 이용약관 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
                 </button>
                 <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
               </div>
 
+              {/* 개인정보 처리방침 (필수) */}
               <div className="flex items-center justify-between">
-                <button type="button" onClick={() => handleIndividual("privacy", !agreePrivacy)} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleIndividual("privacy", !agreePrivacy)}
+                  className="flex items-center gap-3"
+                >
                   <CheckCircle checked={agreePrivacy} small />
                   <span className="t-text-muted text-xs">개인정보 처리방침 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
                 </button>
                 <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
               </div>
 
+              {/* 마케팅 수신 (선택) */}
               <div className="flex items-center justify-between">
-                <button type="button" onClick={() => handleIndividual("marketing", !agreeMarketing)} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleIndividual("marketing", !agreeMarketing)}
+                  className="flex items-center gap-3"
+                >
                   <CheckCircle checked={agreeMarketing} small />
                   <span className="t-text-muted text-xs">마케팅 정보 수신 동의 <span className="t-text-faint">(선택)</span></span>
                 </button>
@@ -206,7 +223,7 @@ function CheckCircle({ checked, small }: { checked: boolean; small?: boolean }) 
   const size = small ? 18 : 22;
   return (
     <div
-      className="flex-shrink-0 flex items-center justify-center rounded-full"
+      className="flex-shrink-0 flex items-center justify-center rounded-full transition-all"
       style={{
         width: size,
         height: size,
