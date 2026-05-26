@@ -205,10 +205,8 @@ export default function WhiteboardPage() {
   const gridNaturalW = cols * CELL_W + PADDING * 2;
   const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
 
-  const [viewAll, setViewAll] = useState(true);
-  const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
-  const gridScale = viewAll ? fitScale : scrollScale;
+  const gridScale = fitScale;
 
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -440,30 +438,7 @@ export default function WhiteboardPage() {
           <span className="font-display t-text font-semibold text-sm tracking-tight">{group.name}</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* 전체보기 ↔ 스크롤 토글 */}
-          {tasks.length > 0 && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setViewAll((v) => !v)}
-              className="w-9 h-9 glass rounded-full flex items-center justify-center"
-            >
-              {viewAll ? (
-                /* 스크롤 모드로 — 화살표 양쪽 */
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.7"/>
-                </svg>
-              ) : (
-                /* 전체보기로 — 격자 축소 */
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
-                  <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
-                  <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
-                  <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
-                </svg>
-              )}
-            </motion.button>
-          )}
-          <motion.button
+<motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => router.push(`/${groupId}/list`)}
             className="w-9 h-9 glass rounded-full flex items-center justify-center"
@@ -519,14 +494,14 @@ export default function WhiteboardPage() {
       <div
         ref={canvasRef}
         className="flex-1 relative"
-        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}
+        style={{ minHeight: 0, overflow: "hidden", padding: "20px 20px 40px 20px" }}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
           </div>
         ) : (
-          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
+          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: gridNaturalW * gridScale, height: gridNaturalH * gridScale, position: "relative", flexShrink: 0 }}>
               <div style={{ width: gridNaturalW, transform: `scale(${gridScale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                 {(() => {
