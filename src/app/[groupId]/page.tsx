@@ -14,7 +14,7 @@ const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧",
 const MEMBER_COLORS = ["#FF6B6B","#FF9F43","#FECA57","#48DBFB","#FF9FF3","#54A0FF","#5F27CD","#01CBC6"];
 
 const CELL_W = 172;
-const CELL_H = 224;
+const CELL_H = 290;
 const PADDING = 20;
 const SCATTER = 14;
 const FIXED_ROWS = 5;
