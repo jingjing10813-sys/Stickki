@@ -31,9 +31,7 @@ export interface Task {
   type: TaskType;
   assignee_id: string | null;
   assignee_name: string | null;
-  author_name: string | null;
   status: TaskStatus;
-  due_date: string | null;
   created_at: string;
   completed_at: string | null;
   position_x: number;
@@ -41,4 +39,5 @@ export interface Task {
   rotation: number;
   reactions: Record<string, number>;
   color: string | null;
+  is_pinned?: boolean;
 }

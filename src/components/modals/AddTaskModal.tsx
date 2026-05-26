@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
 import type { Member, TaskType } from "@/types";
 import { TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
 
@@ -11,17 +10,17 @@ interface AddTaskModalProps {
   groupId: string;
   members: Member[];
   onClose: () => void;
+  newPosition?: { x: number; y: number };
 }
 
-export default function AddTaskModal({ groupId, members, onClose }: AddTaskModalProps) {
-  const { profile } = useAuth();
+export default function AddTaskModal({ groupId, members, onClose, newPosition }: AddTaskModalProps) {
   const [type, setType] = useState<TaskType>("todo");
   const [content, setContent] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [noteRecipientId, setNoteRecipientId] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
 
   const colors = type === "todo" ? TODO_COLORS : NOTE_COLORS;
   const activeColor = selectedColor ?? colors[0];
@@ -31,33 +30,22 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
     if (!content.trim() || loading) return;
     setLoading(true);
     const rotation = (Math.random() - 0.5) * 14;
-    const position_x = 5 + Math.random() * 55;
-    const position_y = 5 + Math.random() * 55;
-
-    const payload = {
+    const position_x = newPosition?.x ?? Date.now();
+    const position_y = newPosition?.y ?? 0;
+    await supabase.from("tasks").insert({
       group_id: groupId,
       content: content.trim(),
       type,
       assignee_name: type === "todo"
         ? (selectedMember?.name ?? null)
         : (noteRecipientId ? (members.find((m) => m.id === noteRecipientId)?.name ?? null) : null),
-      due_date: type === "todo" && dueDate ? dueDate : null,
-      author_name: profile?.name ?? null,
       status: "pending",
       rotation,
       position_x,
       position_y,
       color: activeColor,
-    };
-
-    const { error } = await supabase.from("tasks").insert(payload);
-
-    if (error) {
-      console.error("붙이기 실패:", error.message);
-      setLoading(false);
-      return;
-    }
-
+      is_pinned: isPinned,
+    });
     onClose();
   }
 
@@ -78,6 +66,7 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
         className="relative w-full max-w-lg t-elevated rounded-t-3xl pt-3 pb-10 px-5 z-10"
         style={{ boxShadow: "0 -20px 60px rgba(0,0,0,0.3)" }}
       >
+        {/* 드래그 핸들 */}
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--border-mid)" }} />
 
         {/* 포스트잇 프리뷰 */}
@@ -105,6 +94,7 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
               </svg>
             </div>
           )}
+
           <div className="relative flex items-start justify-between gap-3">
             <textarea
               autoFocus
@@ -134,7 +124,7 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
           {(["todo", "note"] as TaskType[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setType(t); setSelectedColor(null); setSelectedMemberId(null); setNoteRecipientId(null); setDueDate(""); }}
+              onClick={() => { setType(t); setSelectedColor(null); setSelectedMemberId(null); setNoteRecipientId(null); }}
               className="flex-1 py-2.5 rounded-2xl text-sm font-semibold transition-all"
               style={{
                 backgroundColor: type === t ? "var(--btn-primary-bg)" : "var(--btn-secondary-bg)",
@@ -197,40 +187,6 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
           )}
         </AnimatePresence>
 
-        {/* 마감일 선택 (할일만) */}
-        <AnimatePresence>
-          {type === "todo" && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              className="overflow-hidden mb-4"
-            >
-              <p className="t-text-muted text-xs mb-2.5">마감일 (선택)</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="flex-1 t-card rounded-xl px-3 py-2 text-sm t-text outline-none"
-                  style={{ border: "1px solid var(--border-color)" }}
-                />
-                {dueDate && (
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setDueDate("")}
-                    className="px-3 py-2 rounded-xl text-xs t-text-faint"
-                    style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
-                  >
-                    지우기
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* 쪽지 수신자 선택 */}
         <AnimatePresence>
           {type === "note" && members.length > 0 && (
@@ -280,6 +236,24 @@ export default function AddTaskModal({ groupId, members, onClose }: AddTaskModal
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 고정 토글 */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          onClick={() => setIsPinned((v) => !v)}
+          className="w-full py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-4 transition-all"
+          style={{
+            background: isPinned ? "rgba(255,213,0,0.15)" : "var(--card)",
+            border: `1px solid ${isPinned ? "rgba(255,213,0,0.5)" : "var(--border-color)"}`,
+            color: isPinned ? "#D4A000" : "var(--text-3)",
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={isPinned ? "#D4A000" : "none"} stroke={isPinned ? "#D4A000" : "currentColor"} strokeWidth="2" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          {isPinned ? "상단에 고정됨" : "상단에 고정하기"}
+        </motion.button>
 
         {/* 컬러 피커 */}
         <div className="mb-5">
