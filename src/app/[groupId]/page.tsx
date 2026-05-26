@@ -205,8 +205,10 @@ export default function WhiteboardPage() {
   const gridNaturalW = cols * CELL_W + PADDING * 2;
   const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
 
+  const [viewAll, setViewAll] = useState(true);
+  const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
-  const gridScale = fitScale;
+  const gridScale = viewAll ? fitScale : scrollScale;
 
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -494,14 +496,14 @@ export default function WhiteboardPage() {
       <div
         ref={canvasRef}
         className="flex-1 relative"
-        style={{ minHeight: 0, overflow: "hidden", padding: "20px 20px 40px 20px" }}
+        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
           </div>
         ) : (
-          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
             <div style={{ width: gridNaturalW * gridScale, height: gridNaturalH * gridScale, position: "relative", flexShrink: 0 }}>
               <div style={{ width: gridNaturalW, transform: `scale(${gridScale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                 {(() => {
@@ -548,6 +550,35 @@ export default function WhiteboardPage() {
           </div>
         )}
       </div>
+
+      {/* 전체보기 ↔ 스크롤 토글 */}
+      {tasks.length > 0 && (
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setViewAll((v) => !v)}
+          className="absolute z-30 glass rounded-full"
+          style={{ bottom: 72, right: 20, padding: "5px 10px 5px 8px", boxShadow: "0 2px 10px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", gap: 5 }}
+        >
+          {viewAll ? (
+            <>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
+              </svg>
+              <span className="text-xs font-semibold t-text-muted">스크롤</span>
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+              </svg>
+              <span className="text-xs font-semibold t-text-muted">전체보기</span>
+            </>
+          )}
+        </motion.button>
+      )}
 
       <MemberBar members={group.members ?? []} inviteCode={group.invite_code} onRemove={handleRemoveMember} />
 
