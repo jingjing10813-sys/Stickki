@@ -101,7 +101,7 @@ function PostItCard({
       style={{
         width: 148,
         paddingBottom: isTodo ? 0 : 20,
-        zIndex: isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
+        zIndex: showPicker ? 100 : isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
         pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
         touchAction: "none",
         ...style,
