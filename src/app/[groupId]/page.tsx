@@ -210,18 +210,6 @@ export default function WhiteboardPage() {
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
   const gridScale = viewAll ? fitScale : scrollScale;
 
-  // 캔버스 더블탭 감지
-  const canvasLastTapRef = useRef(0);
-  function handleCanvasDoubleTap(e: React.MouseEvent | React.TouchEvent) {
-    if ((e.target as Element).closest("[data-card-id]")) return; // 카드 위는 무시
-    const now = Date.now();
-    if (now - canvasLastTapRef.current < 300) {
-      setViewAll((v) => !v);
-      canvasLastTapRef.current = 0;
-    } else {
-      canvasLastTapRef.current = now;
-    }
-  }
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [setupName, setSetupName] = useState("");
@@ -452,6 +440,29 @@ export default function WhiteboardPage() {
           <span className="font-display t-text font-semibold text-sm tracking-tight">{group.name}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* 전체보기 ↔ 스크롤 토글 */}
+          {tasks.length > 0 && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setViewAll((v) => !v)}
+              className="w-9 h-9 glass rounded-full flex items-center justify-center"
+            >
+              {viewAll ? (
+                /* 스크롤 모드로 — 화살표 양쪽 */
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.7"/>
+                </svg>
+              ) : (
+                /* 전체보기로 — 격자 축소 */
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
+                  <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
+                  <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
+                  <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" strokeOpacity="0.7"/>
+                </svg>
+              )}
+            </motion.button>
+          )}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => router.push(`/${groupId}/list`)}
@@ -509,8 +520,6 @@ export default function WhiteboardPage() {
         ref={canvasRef}
         className="flex-1 relative"
         style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}
-        onClick={handleCanvasDoubleTap}
-        onTouchEnd={handleCanvasDoubleTap}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
