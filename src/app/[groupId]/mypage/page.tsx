@@ -88,6 +88,7 @@ export default function MyPage() {
   }
 
   async function handleSignOut() {
+    localStorage.removeItem("last_group_id");
     await signOut();
     router.push("/login");
   }

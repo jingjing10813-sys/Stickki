@@ -215,6 +215,11 @@ export default function WhiteboardPage() {
   const [setupAvatar, setSetupAvatar] = useState(AVATARS[0]);
   const [setupLoading, setSetupLoading] = useState(false);
 
+  // 마지막 방 저장
+  useEffect(() => {
+    if (groupId) localStorage.setItem("last_group_id", groupId);
+  }, [groupId]);
+
   useEffect(() => {
     if (authLoading || !user) return;
 

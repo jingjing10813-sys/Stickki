@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -14,8 +14,17 @@ function generateInviteCode(): string {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [step, setStep] = useState<Step>("landing");
+
+  // 로그인 후 마지막 방으로 자동 복귀
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const lastGroupId = localStorage.getItem("last_group_id");
+    if (lastGroupId) {
+      router.replace(`/${lastGroupId}`);
+    }
+  }, [authLoading, user, router]);
   const [roomName, setRoomName] = useState("");
   const [motto, setMotto] = useState("");
   const [inviteInput, setInviteInput] = useState("");
