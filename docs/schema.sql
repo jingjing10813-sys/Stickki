@@ -20,6 +20,8 @@ create table if not exists public.tasks (
   position_x     float not null default 0,
   position_y     float not null default 0,
   rotation       float not null default 0,
+  due_date       date,
+  author_name    text,
   created_at     timestamptz not null default now(),
   completed_at   timestamptz
 );

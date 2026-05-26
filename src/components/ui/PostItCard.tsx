@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import type { PanInfo } from "framer-motion";
-import type { Task } from "@/types";
+import type { Task, Member } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { useLongPress } from "@/hooks/useLongPress";
 import ReactionPicker from "./ReactionPicker";
+import TaskDetailModal from "@/components/modals/TaskDetailModal";
 
 export const TODO_COLORS = [
   "#FFF9C4", "#FFECB3", "#F8BBD9", "#E1BEE7",
@@ -25,18 +26,43 @@ export function getColor(id: string, colors: string[]): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function getDdayDiff(dueDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate + "T00:00:00");
+  return Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getDdayLabel(diff: number): string {
+  if (diff === 0) return "D-day";
+  if (diff > 0) return `D-${diff}`;
+  return `D+${Math.abs(diff)}`;
+}
+
+function getDdayBadgeStyle(diff: number): { bg: string; text: string } {
+  if (diff <= 0) return { bg: "#E53935", text: "#fff" };
+  if (diff < 5) return { bg: "#FF6B35", text: "#fff" };
+  return { bg: "#9E9E9E", text: "#fff" };
+}
+
 interface PostItCardProps {
   task: Task;
   style?: React.CSSProperties;
   memberAvatar?: string;
+  members?: Member[];
   containerRef?: React.RefObject<HTMLDivElement | null>;
   onPositionChange?: (id: string, x: number, y: number) => void;
+  onTaskUpdate?: (updated: Task) => void;
 }
 
-export default function PostItCard({ task, style, memberAvatar, containerRef, onPositionChange }: PostItCardProps) {
+export default function PostItCard({ task, style, memberAvatar, members = [], containerRef, onPositionChange, onTaskUpdate }: PostItCardProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isFolded, setIsFolded] = useState(true);
+  const [reactions, setReactions] = useState<Record<string, number>>(task.reactions ?? {});
+  const isDragging = useRef(false);
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
   const isTodo = task.type === "todo";
@@ -45,8 +71,13 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
     ? getColor(task.id, TODO_COLORS)
     : getColor(task.id, NOTE_COLORS));
 
-  const reactions: Record<string, number> = task.reactions ?? {};
+  useEffect(() => {
+    setReactions(task.reactions ?? {});
+  }, [task.reactions]);
+
   const reactionEntries = Object.entries(reactions).filter(([, count]) => count > 0);
+
+  const ddayDiff = task.due_date ? getDdayDiff(task.due_date) : null;
 
   async function handleToggleDone() {
     if (!isTodo) return;
@@ -59,20 +90,30 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
   async function handleReaction(emoji: string) {
     const current = reactions[emoji] ?? 0;
     const updated = { ...reactions, [emoji]: current > 0 ? 0 : 1 };
+    setReactions(updated);
     await supabase.from("tasks").update({ reactions: updated }).eq("id", task.id);
   }
 
   function startDelete() {
     setShowDeleteConfirm(false);
     setIsDeleting(true);
-    // 애니메이션 후 DB 삭제
     setTimeout(() => {
       supabase.from("tasks").delete().eq("id", task.id);
     }, 550);
   }
 
+  function handleCardClick() {
+    if (isDragging.current) return;
+    if (isTodo) {
+      setShowTaskDetail(true);
+    } else {
+      setIsFolded((prev) => !prev);
+    }
+  }
+
   const longPressHandlers = useLongPress({
     onLongPress: () => setShowPicker(true),
+    onClick: handleCardClick,
     delay: 450,
   });
 
@@ -90,12 +131,13 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
     dragX.set(0);
     dragY.set(0);
     await supabase.from("tasks").update({ position_x: newX, position_y: newY }).eq("id", task.id);
+    setTimeout(() => { isDragging.current = false; }, 50);
   }
 
   return (
     <div
       className="relative"
-      style={{ width: 148, zIndex: showDeleteConfirm ? 50 : undefined, ...style }}
+      style={{ width: isTodo ? 148 : (isFolded ? 96 : 148), zIndex: showDeleteConfirm ? 50 : undefined, ...style }}
     >
       {/* 반응 피커 */}
       <AnimatePresence>
@@ -104,6 +146,18 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
             onSelect={handleReaction}
             onDelete={() => { setShowPicker(false); setShowDeleteConfirm(true); }}
             onClose={() => setShowPicker(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 할일 상세 모달 */}
+      <AnimatePresence>
+        {showTaskDetail && (
+          <TaskDetailModal
+            task={task}
+            members={members}
+            onClose={() => setShowTaskDetail(false)}
+            onUpdate={(updated) => { onTaskUpdate?.(updated); }}
           />
         )}
       </AnimatePresence>
@@ -130,11 +184,15 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
         style={{ x: dragX, y: dragY }}
         className="relative cursor-grab active:cursor-grabbing"
         {...longPressHandlers}
-        onDragStart={() => { setShowPicker(false); setShowDeleteConfirm(false); }}
+        onDragStart={() => {
+          isDragging.current = true;
+          setShowPicker(false);
+          setShowDeleteConfirm(false);
+        }}
         onDragEnd={handleDragEnd}
       >
         {/* 빨간 핀 (쪽지) */}
-        {!isTodo && (
+        {!isTodo && !isFolded && (
           <motion.div
             initial={{ scale: 0, y: -8 }}
             animate={{ scale: 1, y: 0 }}
@@ -150,79 +208,148 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
           </motion.div>
         )}
 
-        {/* 카드 본체 */}
-        <div
-          className="rounded-xl overflow-visible select-none"
-          style={{
-            backgroundColor: color,
-            aspectRatio: isTodo ? "1/1" : "3/4",
-            boxShadow: `
-              0 2px 4px rgba(0,0,0,0.08),
-              0 8px 24px rgba(0,0,0,0.12),
-              inset 0 1px 0 rgba(255,255,255,0.6)
-            `,
-            filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
-          }}
-        >
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
+        {/* 접힌 쪽지 */}
+        {!isTodo && isFolded && (
+          <motion.div
+            layout
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             style={{
-              background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-              opacity: 0.5,
+              width: 96,
+              height: 74,
+              backgroundColor: color,
+              borderRadius: 10,
+              clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.5)",
+              position: "relative",
+              overflow: "visible",
             }}
-          />
-
-          <div className="relative p-3 h-full flex flex-col">
-            {isTodo && (
-              <div className="flex items-start justify-between mb-2">
-                <button
-                  onPointerDown={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); handleToggleDone(); }}
-                  className={`relative flex-shrink-0 mt-0.5 -m-1.5 p-1.5`}
-                  style={{ touchAction: "none" }}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isDone ? "border-black/40 bg-black/30" : "border-black/25 bg-transparent"
-                  }`}>
-                    {isDone && (
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                  </div>
-                </button>
-                <motion.span
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.18 }}
-                  className="text-2xl leading-none -mt-1 -mr-1"
-                  style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.2))" }}
-                >
-                  {memberAvatar ?? "🐾"}
-                </motion.span>
-              </div>
-            )}
-
-            <p
-              className="font-motto text-black/80 leading-snug flex-1"
+          >
+            {/* 접힌 모서리 삼각형 */}
+            <div
               style={{
-                textDecoration: isDone ? "line-through" : "none",
-                fontSize: task.content.length > 30 ? "12px" : "14px",
+                position: "absolute",
+                right: 0,
+                bottom: 0,
+                width: 18,
+                height: 18,
+                background: "rgba(0,0,0,0.18)",
+                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+                borderBottomRightRadius: 6,
               }}
-            >
-              {task.content}
-            </p>
+            />
+            {/* 핀 아이콘 */}
+            <div className="flex items-center justify-center h-full">
+              <svg width="16" height="24" viewBox="0 0 20 32" fill="none" style={{ opacity: 0.4 }}>
+                <ellipse cx="10" cy="10" rx="10" ry="10" fill="#333"/>
+                <rect x="9" y="18" width="2" height="14" rx="1" fill="#333"/>
+              </svg>
+            </div>
+          </motion.div>
+        )}
 
-            {isTodo && task.assignee_name && (
-              <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
-            )}
+        {/* 펼쳐진 쪽지 / 할일 카드 본체 */}
+        {(isTodo || !isFolded) && (
+          <div
+            className="rounded-xl overflow-visible select-none"
+            style={{
+              backgroundColor: color,
+              width: 148,
+              aspectRatio: isTodo ? "1/1" : "3/4",
+              boxShadow: `
+                0 2px 4px rgba(0,0,0,0.08),
+                0 8px 24px rgba(0,0,0,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.6)
+              `,
+              filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
+            }}
+          >
+            <div
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{
+                background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
+                opacity: 0.5,
+              }}
+            />
+
+            <div className="relative p-3 h-full flex flex-col">
+              {isTodo && (
+                <div className="flex items-start justify-between mb-2">
+                  <button
+                    onPointerDown={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); handleToggleDone(); }}
+                    className="relative flex-shrink-0 mt-0.5 -m-1.5 p-1.5"
+                    style={{ touchAction: "none" }}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isDone ? "border-black/40 bg-black/30" : "border-black/25 bg-transparent"
+                    }`}>
+                      {isDone && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                  <motion.span
+                    initial={{ x: -10, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.18 }}
+                    className="text-2xl leading-none -mt-1 -mr-1"
+                    style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.2))" }}
+                  >
+                    {memberAvatar ?? "🐾"}
+                  </motion.span>
+                </div>
+              )}
+
+              {!isTodo && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+                  style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>
+                  <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
+                    <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
+                    <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
+                    <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
+                  </svg>
+                </div>
+              )}
+
+              <p
+                className="font-motto text-black/80 leading-snug flex-1"
+                style={{
+                  textDecoration: isDone ? "line-through" : "none",
+                  fontSize: task.content.length > 30 ? "12px" : "14px",
+                  marginTop: !isTodo ? "20px" : undefined,
+                }}
+              >
+                {task.content}
+              </p>
+
+              {isTodo && task.assignee_name && (
+                <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
+              )}
+
+              {/* D-day 뱃지 — 카드 우하단 */}
+              {isTodo && ddayDiff !== null && (
+                <span
+                  className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{
+                    backgroundColor: getDdayBadgeStyle(ddayDiff).bg,
+                    color: getDdayBadgeStyle(ddayDiff).text,
+                    zIndex: 10,
+                  }}
+                >
+                  {getDdayLabel(ddayDiff)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 반응 이모지 뱃지 */}
         <AnimatePresence>
-          {reactionEntries.length > 0 && (
+          {reactionEntries.length > 0 && (isTodo || !isFolded) && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -252,7 +379,7 @@ export default function PostItCard({ task, style, memberAvatar, containerRef, on
         </AnimatePresence>
       </motion.div>
 
-      {/* 삭제 확인 팝업 — motion.div 뒤에 배치해서 위에 렌더링 */}
+      {/* 삭제 확인 팝업 */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div

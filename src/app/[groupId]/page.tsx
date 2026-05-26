@@ -74,7 +74,13 @@ export default function WhiteboardPage() {
       }, (payload) => {
         if (payload.eventType === "INSERT") setTasks((p) => [payload.new as Task, ...p]);
         else if (payload.eventType === "UPDATE")
-          setTasks((p) => p.map((t) => t.id === payload.new.id ? payload.new as Task : t));
+          setTasks((p) => p.map((t) => {
+            if (t.id !== payload.new.id) return t;
+            const update = Object.fromEntries(
+              Object.entries(payload.new as Task).filter(([, v]) => v !== undefined)
+            );
+            return { ...t, ...update } as Task;
+          }));
         else if (payload.eventType === "DELETE")
           setTasks((p) => p.filter((t) => t.id !== payload.old.id));
       })
@@ -284,9 +290,13 @@ export default function WhiteboardPage() {
                     <PostItCard
                       task={task}
                       memberAvatar={member?.avatar}
+                      members={group.members ?? []}
                       containerRef={boardRef}
                       onPositionChange={(id, x, y) => {
                         setTasks((prev) => prev.map((t) => t.id === id ? { ...t, position_x: x, position_y: y } : t));
+                      }}
+                      onTaskUpdate={(updated) => {
+                        setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t));
                       }}
                     />
                   </div>
