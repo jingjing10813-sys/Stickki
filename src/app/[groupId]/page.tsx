@@ -47,7 +47,6 @@ export default function WhiteboardPage() {
   const [mottoValue, setMottoValue] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ w: 360, h: 600 });
-  const [viewAll, setViewAll] = useState(false);
   const [nextPosition, setNextPosition] = useState<{ x: number; y: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -206,9 +205,8 @@ export default function WhiteboardPage() {
   const gridNaturalW = cols * CELL_W + PADDING * 2;
   const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
 
-  const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
-  const gridScale = viewAll ? fitScale : scrollScale;
+  const gridScale = fitScale;
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [setupName, setSetupName] = useState("");
@@ -322,6 +320,32 @@ export default function WhiteboardPage() {
     const { data } = await supabase.from("groups").update({ motto: mottoValue })
       .eq("id", group.id).select().single();
     if (data) setGroup(data);
+  }
+
+  async function addDummyTasks() {
+    const dummies = [
+      { content: "장보기 🛒", type: "todo" },
+      { content: "운동하기 💪", type: "todo" },
+      { content: "같이 영화보자!", type: "note" },
+      { content: "청소기 돌리기", type: "todo" },
+      { content: "오늘 저녁 뭐 먹지? 🍜", type: "note" },
+      { content: "세탁기 돌리기", type: "todo" },
+      { content: "고마워 ❤️", type: "note" },
+      { content: "약속 잡기", type: "todo" },
+    ];
+    for (let i = 0; i < dummies.length; i++) {
+      const { x, y } = computeGridPos(tasks.length + i, `dummy-${i}`);
+      await supabase.from("tasks").insert({
+        group_id: groupId,
+        content: dummies[i].content,
+        type: dummies[i].type,
+        status: "pending",
+        rotation: (Math.random() - 0.5) * 12,
+        position_x: x,
+        position_y: y,
+        color: ["#FFF9C4","#F8BBD9","#B2EBF2","#C8E6C9","#FFCCBC","#E1BEE7"][i % 6],
+      });
+    }
   }
 
   async function handleRemoveMember(id: string) {
@@ -464,25 +488,15 @@ export default function WhiteboardPage() {
             {group.motto}
           </motion.button>
         )}
-        {tasks.length > 0 && (
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setViewAll((v) => !v)}
-            className="absolute right-5 px-2.5 py-1 rounded-full text-xs font-semibold glass"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
-          >
-            {viewAll ? "스크롤" : "전체보기"}
-          </motion.button>
-        )}
       </div>
 
-      <div ref={canvasRef} className="flex-1 relative" style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "20px 20px 40px 20px" }}>
+      <div ref={canvasRef} className="flex-1 relative" style={{ minHeight: 0, overflow: "hidden", padding: "20px 20px 40px 20px" }}>
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
           </div>
         ) : (
-          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
+          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: gridNaturalW * gridScale, height: gridNaturalH * gridScale, position: "relative", flexShrink: 0 }}>
               <div style={{ width: gridNaturalW, transform: `scale(${gridScale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                 {(() => {
@@ -559,6 +573,16 @@ export default function WhiteboardPage() {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* 더미 데이터 버튼 (개발용) */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={addDummyTasks}
+        className="fixed bottom-8 left-6 z-40 px-3 h-9 rounded-full flex items-center gap-1.5 text-xs font-semibold glass"
+        style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}
+      >
+        <span>🧪</span> 더미 추가
+      </motion.button>
 
       {/* 휴지통 존 — 롱프레스 시 하단에 나타남 */}
       <AnimatePresence>
