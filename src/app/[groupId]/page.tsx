@@ -526,7 +526,7 @@ export default function WhiteboardPage() {
       <div
         ref={canvasRef}
         className="flex-1 relative"
-        style={{ minHeight: 0, overflowX: viewAll ? "visible" : "auto", overflowY: viewAll ? "visible" : "hidden", padding: "0px 20px 40px 20px" }}
+        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "0px 20px 40px 20px" }}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">

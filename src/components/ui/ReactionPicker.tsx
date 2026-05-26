@@ -22,9 +22,6 @@ export default function ReactionPicker({ onSelect, onClose, isPinned, onTogglePi
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.7, y: 8 }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        className={`absolute bottom-full mb-3 z-40 ${
-          align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
-        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 꼬리 */}

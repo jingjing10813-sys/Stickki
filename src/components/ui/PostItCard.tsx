@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import { memo, useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Task } from "@/types";
 import { supabase } from "@/lib/supabase";
@@ -67,6 +68,9 @@ function PostItCard({
   const lastTapRef = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const [pickerAlign, setPickerAlign] = useState<"left" | "center" | "right">("center");
+  const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -120,6 +124,7 @@ function PostItCard({
             if (rect.left + pickerW / 2 > vw) setPickerAlign("right");
             else if (rect.right - pickerW / 2 < 0) setPickerAlign("left");
             else setPickerAlign("center");
+            setPickerPos({ x: rect.left + rect.width / 2, y: rect.top });
           }
           setShowPicker(true);
           return;
@@ -157,18 +162,30 @@ function PostItCard({
         }, 280);
       }}
     >
-      {/* 반응 피커 */}
-      <AnimatePresence>
-        {showPicker && (
-          <ReactionPicker
-            onSelect={handleReaction}
-            onClose={() => setShowPicker(false)}
-            isPinned={isPinned}
-            onTogglePin={handleTogglePin}
-            align={pickerAlign}
-          />
-        )}
-      </AnimatePresence>
+      {/* 반응 피커 - portal로 body에 렌더링 (z-index 충돌 방지) */}
+      {mounted && showPicker && pickerPos && createPortal(
+        <AnimatePresence>
+          <div
+            style={{
+              position: "fixed",
+              left: pickerAlign === "right" ? "auto" : pickerAlign === "left" ? pickerPos.x - 8 : pickerPos.x,
+              right: pickerAlign === "right" ? window.innerWidth - pickerPos.x - 8 : "auto",
+              top: pickerPos.y - 8,
+              transform: pickerAlign === "center" ? "translate(-50%, -100%)" : "translateY(-100%)",
+              zIndex: 9999,
+            }}
+          >
+            <ReactionPicker
+              onSelect={handleReaction}
+              onClose={() => setShowPicker(false)}
+              isPinned={isPinned}
+              onTogglePin={handleTogglePin}
+              align={pickerAlign}
+            />
+          </div>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* 카드 */}
       <motion.div
