@@ -6,14 +6,13 @@ const EMOJIS = ["❤️", "😂", "👍", "🔥", "😮", "😢", "🎉", "👀"
 
 interface ReactionPickerProps {
   onSelect: (emoji: string) => void;
-  onDelete: () => void;
   onClose: () => void;
   isPinned?: boolean;
   onTogglePin?: () => void;
   align?: "left" | "center" | "right";
 }
 
-export default function ReactionPicker({ onSelect, onDelete, onClose, isPinned, onTogglePin, align = "center" }: ReactionPickerProps) {
+export default function ReactionPicker({ onSelect, onClose, isPinned, onTogglePin, align = "center" }: ReactionPickerProps) {
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
@@ -79,23 +78,6 @@ export default function ReactionPicker({ onSelect, onDelete, onClose, isPinned, 
             </motion.button>
           )}
 
-          {/* 구분선 */}
-          <div className="w-px h-6 mx-1 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.12)" }} />
-
-          {/* 삭제 버튼 */}
-          <motion.button
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: EMOJIS.length * 0.03, type: "spring", stiffness: 400, damping: 25 }}
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { onDelete(); onClose(); }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-red-500/20 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M6 7v5M10 7v5M3 4l1 9.5a.5.5 0 00.5.5h7a.5.5 0 00.5-.5L13 4" stroke="#FF6B6B" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </motion.button>
         </div>
       </motion.div>
     </>

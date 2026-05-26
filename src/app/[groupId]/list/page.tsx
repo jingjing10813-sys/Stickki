@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import type { Group, Task, Member } from "@/types";
+import type { Group, Task } from "@/types";
 import { getColor, TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
+import { useTheme } from "@/lib/theme";
 
 type FilterTab = "all" | "todo" | "note" | "done";
 
@@ -15,12 +16,6 @@ const FILTER_TABS: { label: string; value: FilterTab }[] = [
   { label: "쪽지", value: "note" },
   { label: "완료", value: "done" },
 ];
-
-function hashInt(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
 
 function formatDateLabel(dateStr: string): string {
   const date = new Date(dateStr);
@@ -34,6 +29,13 @@ function formatDateLabel(dateStr: string): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
+function getFilterSuffix(filter: FilterTab): string {
+  if (filter === "todo") return "의 할 일";
+  if (filter === "note") return "의 쪽지";
+  if (filter === "done") return "에 완료된 흔적";
+  return "의 기록";
+}
+
 function groupByDate(tasks: Task[]): [string, Task[]][] {
   const map = new Map<string, Task[]>();
   for (const task of tasks) {
@@ -45,310 +47,155 @@ function groupByDate(tasks: Task[]): [string, Task[]][] {
   return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
 }
 
-// ─── 리스트용 미니 썸네일 ─────────────────────────────────────────
-function MiniPostIt({ task }: { task: Task }) {
+// ─── 그리드용 포스트잇 카드 ─────────────────────────────────────────
+function GridPostIt({ task }: { task: Task }) {
   const color = task.type === "todo"
     ? getColor(task.id, TODO_COLORS)
     : getColor(task.id, NOTE_COLORS);
+
+  const reactions: Record<string, number> = task.reactions ?? {};
+  const hasReactions = Object.values(reactions).some((r) => r > 0);
+
   return (
     <div
-      className="w-16 h-16 rounded-xl flex-shrink-0 p-2 relative overflow-hidden"
-      style={{
-        backgroundColor: color,
-        transform: `rotate(${task.rotation * 0.5}deg)`,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      }}
+      className="relative flex flex-col"
+      style={{ transform: `rotate(${(task.rotation ?? 0) * 0.5}deg)` }}
     >
-      {task.type === "note" && (
-        <div className="absolute top-0.5 left-1/2 -translate-x-1/2">
-          <svg width="8" height="12" viewBox="0 0 20 32" fill="none">
+      {/* 핀 / 클립 */}
+      {task.type === "note" ? (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
+          <svg width="14" height="20" viewBox="0 0 20 32" fill="none">
             <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
             <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
           </svg>
         </div>
+      ) : task.is_pinned ? (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
+          <svg width="12" height="18" viewBox="0 0 20 30" fill="none">
+            <circle cx="10" cy="10" r="9" fill="#FFD700" stroke="#FFA000" strokeWidth="1.5"/>
+            <circle cx="10" cy="10" r="4" fill="#FFA000"/>
+            <rect x="9" y="18" width="2" height="12" rx="1" fill="#FFA000"/>
+          </svg>
+        </div>
+      ) : null}
+
+      {/* 카드 */}
+      <div
+        className="rounded-xl p-3 relative overflow-hidden"
+        style={{
+          backgroundColor: task.is_pinned && task.type === "todo" ? "#FFF9C4" : color,
+          boxShadow: "0 3px 10px rgba(0,0,0,0.13)",
+          minHeight: 80,
+        }}
+      >
+        <p className="font-motto text-black/75 text-xs leading-snug line-clamp-4 mt-2">
+          {task.content}
+        </p>
+        {task.assignee_name && (
+          <p className="text-black/40 text-[9px] mt-1 truncate">— {task.assignee_name}</p>
+        )}
+      </div>
+
+      {/* 반응 뱃지 */}
+      {hasReactions && (
+        <div className="flex flex-wrap gap-0.5 mt-1 justify-center">
+          {Object.entries(reactions)
+            .filter(([, count]) => count > 0)
+            .map(([emoji, count]) => (
+              <span
+                key={emoji}
+                className="text-[10px] bg-black/8 dark:bg-white/12 rounded-full px-1.5 py-0.5"
+              >
+                {emoji} {count > 1 ? count : ""}
+              </span>
+            ))}
+        </div>
       )}
-      <p className="font-motto text-black/70 text-[9px] leading-tight line-clamp-3 mt-2">
-        {task.content}
-      </p>
     </div>
   );
 }
 
-// ─── 추억 흩뿌리기 모달 ───────────────────────────────────────────
-const MAX_SCATTER = 9;
-const CARD_W = 148;
-
-interface ScatterModalProps {
+// ─── 블러 그리드 모달 ─────────────────────────────────────────
+interface GridModalProps {
   tasks: Task[];
-  members: Member[];
-  groupId: string;
-  dateLabel: string;
+  dateKey: string;
+  filter: FilterTab;
   onClose: () => void;
+  isDark: boolean;
 }
 
-function PostItScatterModal({ tasks, members, groupId, dateLabel, onClose }: ScatterModalProps) {
-  const router = useRouter();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [areaSize, setAreaSize] = useState({ w: 375, h: 640 });
-
-  useEffect(() => {
-    if (containerRef.current) {
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      setAreaSize({ w: width, h: height });
-    }
-  }, []);
-
-  const visible = tasks.slice(0, MAX_SCATTER);
-
-  function getScatterPos(index: number, taskId: string) {
-    const hash = hashInt(taskId);
-    const cols = 3;
-    const colStep = (areaSize.w - CARD_W - 16) / (cols - 1);
-    const rows = Math.ceil(visible.length / cols);
-    const rowStep = Math.min((areaSize.h - 80) / Math.max(rows, 2), 210);
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-
-    const ox = (hash % 22) - 11;
-    const oy = ((hash >> 8) % 18) - 9;
-    const rotate = ((hash >> 4) % 26) - 13;
-    const zIndex = ((hash >> 12) % 9) + 1;
-
-    return {
-      x: Math.max(4, 8 + col * colStep + ox),
-      y: Math.max(8, 28 + row * rowStep + oy),
-      rotate,
-      zIndex,
-    };
-  }
+function PostItGridModal({ tasks, dateKey, filter, onClose, isDark }: GridModalProps) {
+  const label = formatDateLabel(dateKey) + getFilterSuffix(filter);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.22 }}
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{
-        background: "radial-gradient(ellipse at 50% 18%, #FFFBEF 0%, #EFE0B4 100%)",
-      }}
-      onClick={onClose}
-    >
-      {/* 종이 도트 텍스처 */}
-      <div
-        className="absolute inset-0 pointer-events-none"
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
         style={{
-          backgroundImage: "radial-gradient(circle, rgba(139,101,40,0.07) 1px, transparent 1px)",
-          backgroundSize: "22px 22px",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)",
         }}
-      />
-      {/* 외곽 비네트 */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at center, transparent 42%, rgba(110,75,15,0.14) 100%)",
-        }}
-      />
-
-      {/* 헤더 */}
-      <div
-        className="relative flex-shrink-0 flex items-center justify-between px-5 pb-3"
-        style={{ paddingTop: "calc(var(--spacing) * 4)" }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <div>
-          <p className="font-display font-bold text-xl" style={{ color: "rgba(90,58,10,0.8)" }}>
-            {dateLabel}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(120,85,20,0.45)" }}>
-            {tasks.length}개의 메모가 있었어요
-          </p>
-        </div>
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={onClose}
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "rgba(139,101,40,0.13)" }}
+        {/* 헤더 */}
+        <div
+          className="flex items-center justify-between px-5 pt-12 pb-4"
+          onClick={(e) => e.stopPropagation()}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M1 1l10 10M11 1L1 11" stroke="rgba(100,65,10,0.55)" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-        </motion.button>
-      </div>
-
-      {/* 흩뿌리기 영역 */}
-      <div ref={containerRef} className="flex-1 relative" onClick={onClose}>
-        {visible.map((task, i) => {
-          const pos = getScatterPos(i, task.id);
-          const color = task.type === "todo"
-            ? getColor(task.id, TODO_COLORS)
-            : getColor(task.id, NOTE_COLORS);
-          const isDone = task.status === "done";
-          const isPinned = task.is_pinned ?? false;
-          const isTodo = task.type === "todo";
-          const member = members.find((m) => m.name === task.assignee_name);
-          const reactions: Record<string, number> = task.reactions ?? {};
-          const hasReactions = Object.values(reactions).some((c) => c > 0);
-
-          return (
-            <motion.div
-              key={task.id}
-              initial={{ y: 140, opacity: 0, rotate: pos.rotate * 2.2, scale: 0.78 }}
-              animate={{ y: 0, opacity: 1, rotate: pos.rotate, scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 230,
-                damping: 22,
-                delay: i * 0.06,
-              }}
-              style={{
-                position: "absolute",
-                left: pos.x,
-                top: pos.y,
-                zIndex: pos.zIndex,
-                width: CARD_W,
-                paddingTop: isPinned ? 18 : isTodo ? 0 : 14,
-                cursor: "pointer",
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/${groupId}/${task.id}`);
-              }}
-              whileTap={{ scale: 1.1, zIndex: 30, transition: { duration: 0.12 } }}
-            >
-              {/* 고정 핀 */}
-              {isPinned && (
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-                  style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
-                >
-                  <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
-                    <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
-                    <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
-                    <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
-                  </svg>
-                </div>
-              )}
-
-              {/* 클립 (쪽지, 고정 아닐 때) */}
-              {!isTodo && !isPinned && (
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-                  style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.2))" }}
-                >
-                  <svg width="14" height="26" viewBox="0 0 14 26" fill="none">
-                    <path d="M7 24C3.7 24 1 21.3 1 18V6.5C1 4 3 2 5.5 2C8 2 10 4 10 6.5V18C10 19.7 8.7 21 7 21C5.3 21 4 19.7 4 18V7"
-                      stroke="#90A4AE" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-                  </svg>
-                </div>
-              )}
-
-              {/* 카드 본체 */}
-              <div
-                className="rounded-xl overflow-visible select-none relative"
-                style={{
-                  backgroundColor: color,
-                  aspectRatio: isTodo ? "1/1" : "3/4",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.55)",
-                  filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
-                }}
-              >
-                {/* 종이 줄 */}
-                <div
-                  className="absolute inset-0 rounded-xl pointer-events-none"
-                  style={{
-                    background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-                    opacity: 0.5,
-                  }}
-                />
-
-                <div className="relative p-3 h-full flex flex-col">
-                  {isTodo && (
-                    <div className="flex items-start justify-between mb-2">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                          isDone ? "border-black/35 bg-black/25" : "border-black/22"
-                        }`}
-                      >
-                        {isDone && (
-                          <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
-                          </svg>
-                        )}
-                      </div>
-                      <span
-                        className="text-xl leading-none -mt-1 -mr-1"
-                        style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.18))" }}
-                      >
-                        {member?.avatar ?? "🐾"}
-                      </span>
-                    </div>
-                  )}
-
-                  <p
-                    className="font-motto text-black/80 leading-snug flex-1"
-                    style={{
-                      textDecoration: isDone ? "line-through" : "none",
-                      fontSize: task.content.length > 30 ? "12px" : "14px",
-                    }}
-                  >
-                    {task.content}
-                  </p>
-
-                  {isTodo && task.assignee_name && (
-                    <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
-                  )}
-                </div>
-
-                {/* 반응 뱃지 */}
-                {hasReactions && (
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                    {Object.entries(reactions)
-                      .filter(([, c]) => c > 0)
-                      .map(([emoji]) => (
-                        <div
-                          key={emoji}
-                          className="px-1.5 py-0.5 rounded-full text-xs"
-                          style={{
-                            background: "rgba(28,28,32,0.8)",
-                            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-                            border: "1.5px solid white",
-                          }}
-                        >
-                          {emoji}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-
-        {/* 더 있음 안내 */}
-        {tasks.length > MAX_SCATTER && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: visible.length * 0.06 + 0.15 }}
-            className="absolute bottom-6 left-0 right-0 text-center text-xs"
-            style={{ color: "rgba(130,90,20,0.4)" }}
+          <h2 className={`font-display font-bold text-lg ${isDark ? "text-white" : "text-black/80"}`}>
+            {label}
+          </h2>
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={onClose}
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-black/8 dark:bg-white/12"
           >
-            +{tasks.length - MAX_SCATTER}개의 메모가 더 있어요
-          </motion.p>
-        )}
-      </div>
-    </motion.div>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </motion.button>
+        </div>
+
+        {/* 그리드 */}
+        <div
+          className="flex-1 overflow-auto px-5 pb-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            {tasks.map((task, idx) => (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: idx * 0.04, type: "spring", stiffness: 300, damping: 28 }}
+              >
+                <GridPostIt task={task} />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
-// ─── 리스트 페이지 ────────────────────────────────────────────────
+// ─── 메인 ─────────────────────────────────────────
 export default function ListPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [group, setGroup] = useState<Group | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterTab>(
+    (searchParams.get("filter") as FilterTab) ?? "all"
+  );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
@@ -383,27 +230,23 @@ export default function ListPage() {
   }, [tasks, activeFilter]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
-  const members: Member[] = group?.members ?? [];
 
   const selectedTasks = useMemo(() => {
     if (!selectedDate) return [];
-    return grouped.find(([dk]) => dk === selectedDate)?.[1] ?? [];
+    return grouped.find(([k]) => k === selectedDate)?.[1] ?? [];
   }, [selectedDate, grouped]);
 
   return (
     <main className="min-h-screen t-bg flex flex-col">
       {/* 헤더 */}
-      <header
-        className="flex items-center justify-between px-5 pb-4 t-bg"
-        style={{ paddingTop: "calc(var(--spacing) * 4)" }}
-      >
+      <header className="flex items-center justify-between px-5 pt-12 pb-4 t-bg">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-9 h-9 glass rounded-full flex items-center justify-center"
+          className="w-9 h-9 flex items-center justify-center"
         >
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
-            <path d="M8 2L2 8L8 14" stroke="currentColor" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+            <path d="M9 1L1 9L9 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="t-text"/>
           </svg>
         </motion.button>
         <h1 className="font-display font-bold t-text text-lg">
@@ -426,21 +269,13 @@ export default function ListPage() {
                 color: activeFilter === tab.value ? "var(--btn-primary-text)" : "var(--text-3)",
               }}
             >
-              {activeFilter === tab.value && (
-                <motion.span
-                  layoutId="list-filter-pill"
-                  className="absolute inset-0 rounded-full"
-                  style={{ backgroundColor: "var(--btn-primary-bg)", zIndex: -1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                />
-              )}
               {tab.label}
             </motion.button>
           ))}
         </div>
       </div>
 
-      {/* 리스트 */}
+      {/* 날짜별 리스트 */}
       <div className="flex-1 overflow-auto px-5 pb-8 space-y-3">
         {grouped.length === 0 ? (
           <p className="text-center t-text-faint text-sm pt-16">항목이 없어요</p>
@@ -465,9 +300,9 @@ export default function ListPage() {
                   <span className="t-text-faint text-xs ml-auto">{dateTasks.length}개</span>
                 </div>
 
-                {/* 날짜 카드 — 탭하면 흩뿌리기 */}
+                {/* 날짜 카드 — 탭하면 모달 */}
                 <motion.div
-                  whileTap={{ scale: 0.975 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedDate(dateKey)}
                   className="t-elevated rounded-3xl p-4 cursor-pointer"
                   style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}
@@ -482,20 +317,42 @@ export default function ListPage() {
                       외 {dateTasks.length - 1}개 항목
                     </p>
                   )}
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2 overflow-hidden">
-                      {dateTasks.slice(0, 4).map((task) => (
-                        <MiniPostIt key={task.id} task={task} />
-                      ))}
-                      {dateTasks.length > 4 && (
-                        <div className="w-16 h-16 rounded-xl flex-shrink-0 t-card flex items-center justify-center">
-                          <span className="t-text-faint text-xs">+{dateTasks.length - 4}</span>
+
+                  {/* 미니 포스트잇 프리뷰 */}
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {dateTasks.slice(0, 5).map((task) => {
+                      const color = task.type === "todo"
+                        ? getColor(task.id, TODO_COLORS)
+                        : getColor(task.id, NOTE_COLORS);
+                      return (
+                        <div
+                          key={task.id}
+                          className="w-14 h-14 rounded-xl flex-shrink-0 p-1.5 relative overflow-hidden"
+                          style={{
+                            backgroundColor: task.is_pinned && task.type === "todo" ? "#FFF9C4" : color,
+                            transform: `rotate(${(task.rotation ?? 0) * 0.5}deg)`,
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                          }}
+                        >
+                          {task.type === "note" && (
+                            <div className="absolute top-0.5 left-1/2 -translate-x-1/2">
+                              <svg width="6" height="10" viewBox="0 0 20 32" fill="none">
+                                <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
+                                <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
+                              </svg>
+                            </div>
+                          )}
+                          <p className="font-motto text-black/70 text-[8px] leading-tight line-clamp-3 mt-1.5">
+                            {task.content}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none" className="flex-shrink-0 ml-2 opacity-25">
-                      <path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                      );
+                    })}
+                    {dateTasks.length > 5 && (
+                      <div className="w-14 h-14 rounded-xl flex-shrink-0 t-card flex items-center justify-center">
+                        <span className="t-text-faint text-xs">+{dateTasks.length - 5}</span>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </motion.div>
@@ -504,19 +361,18 @@ export default function ListPage() {
         )}
       </div>
 
-      {/* 흩뿌리기 모달 */}
+      {/* 그리드 모달 */}
       <AnimatePresence>
-        {selectedDate && selectedTasks.length > 0 && (
-          <PostItScatterModal
+        {selectedDate && (
+          <PostItGridModal
             tasks={selectedTasks}
-            members={members}
-            groupId={groupId}
-            dateLabel={formatDateLabel(selectedDate)}
+            dateKey={selectedDate}
+            filter={activeFilter}
             onClose={() => setSelectedDate(null)}
+            isDark={isDark}
           />
         )}
       </AnimatePresence>
     </main>
   );
 }
-

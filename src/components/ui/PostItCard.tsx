@@ -34,14 +34,30 @@ interface PostItCardProps {
   isDragging?: boolean;
   isDropTarget?: boolean;
   isSwapping?: boolean;
+  isBeingDeleted?: boolean;
+  isLongPressTarget?: boolean;
   onDragStart?: (id: string, clientX: number, clientY: number) => void;
+  onDragCancel?: () => void;
+  onLongPress?: (id: string) => void;
+  onTap?: (id: string) => void;
 }
 
-function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwapping, onDragStart }: PostItCardProps) {
+function PostItCard({
+  task,
+  style,
+  memberAvatar,
+  isDragging,
+  isDropTarget,
+  isSwapping,
+  isBeingDeleted,
+  isLongPressTarget,
+  onDragStart,
+  onDragCancel,
+  onLongPress,
+  onTap,
+}: PostItCardProps) {
   const isPinned = task.is_pinned ?? false;
   const [showPicker, setShowPicker] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const isTodo = task.type === "todo";
   const isDone = task.status === "done";
   const color = task.color ?? (isTodo
@@ -53,6 +69,13 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
   const lastTapRef = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const [pickerAlign, setPickerAlign] = useState<"left" | "center" | "right">("center");
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressFiredRef = useRef(false);
+
+  // Stable delete rotation — deterministic from task.id to avoid re-render flicker
+  const deleteRotRef = useRef(task.rotation + (task.id.charCodeAt(0) % 2 === 0 ? 18 : -18));
 
   async function handleToggleDone() {
     if (!isTodo) return;
@@ -72,15 +95,6 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
     await supabase.from("tasks").update({ reactions: updated }).eq("id", task.id);
   }
 
-  function startDelete() {
-    setShowDeleteConfirm(false);
-    setIsDeleting(true);
-    // 애니메이션 후 DB 삭제
-    setTimeout(() => {
-      supabase.from("tasks").delete().eq("id", task.id);
-    }, 550);
-  }
-
   return (
     <div
       ref={cardRef}
@@ -89,8 +103,8 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
       style={{
         width: 148,
         paddingBottom: isTodo ? 0 : 20,
-        zIndex: isDropTarget ? 30 : showDeleteConfirm ? 50 : undefined,
-        pointerEvents: isDragging ? "none" : undefined,
+        zIndex: isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
+        pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
         touchAction: "none",
         ...style,
       }}
@@ -99,6 +113,8 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
         const now = Date.now();
         if (now - lastTapRef.current < 300) {
           lastTapRef.current = 0;
+          if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
+          if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
           if (cardRef.current) {
             const rect = cardRef.current.getBoundingClientRect();
             const vw = window.innerWidth;
@@ -111,8 +127,36 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
           return;
         }
         lastTapRef.current = now;
+        longPressFiredRef.current = false;
+        pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+        longPressTimerRef.current = setTimeout(() => {
+          longPressFiredRef.current = true;
+          longPressTimerRef.current = null;
+          // 드래그는 유지 — 휴지통으로 끌 수 있도록
+          onLongPress?.(task.id);
+        }, 800);
         e.currentTarget.setPointerCapture(e.pointerId);
         onDragStart?.(task.id, e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (!pointerDownPosRef.current) return;
+        const dx = e.clientX - pointerDownPosRef.current.x;
+        const dy = e.clientY - pointerDownPosRef.current.y;
+        if (Math.hypot(dx, dy) > 8) {
+          if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+          if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
+          pointerDownPosRef.current = null;
+        }
+      }}
+      onPointerUp={() => {
+        if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+        if (!pointerDownPosRef.current) return;
+        pointerDownPosRef.current = null;
+        if (longPressFiredRef.current) return;
+        singleTapTimerRef.current = setTimeout(() => {
+          singleTapTimerRef.current = null;
+          onTap?.(task.id);
+        }, 280);
       }}
     >
       {/* 반응 피커 */}
@@ -120,7 +164,6 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
         {showPicker && (
           <ReactionPicker
             onSelect={handleReaction}
-            onDelete={() => { setShowPicker(false); setShowDeleteConfirm(true); }}
             onClose={() => setShowPicker(false)}
             isPinned={isPinned}
             onTogglePin={handleTogglePin}
@@ -129,7 +172,7 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
         )}
       </AnimatePresence>
 
-      {/* 드래그 카드 */}
+      {/* 카드 */}
       <motion.div
         initial={
           isTodo
@@ -137,10 +180,21 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
             : { opacity: 0, y: -100, scale: 0.85, rotate: task.rotation }
         }
         animate={
-          isDeleting
-            ? { opacity: 0, y: 320, rotate: task.rotation + (Math.random() > 0.5 ? 18 : -18), scale: 0.7, transition: { duration: 0.5, ease: [0.4, 0, 1, 1] } }
+          isBeingDeleted
+            ? {
+                opacity: 0,
+                y: 320,
+                rotate: deleteRotRef.current,
+                scale: 0.55,
+                transition: { duration: 0.48, ease: [0.4, 0, 1, 1] },
+              }
             : isDragging
-            ? { rotate: [task.rotation - DRAG_ROTATE_DELTA, task.rotation + DRAG_ROTATE_DELTA, task.rotation - DRAG_ROTATE_DELTA], opacity: isDone ? 0.4 : 1, scale: 1, y: 0 }
+            ? {
+                rotate: [task.rotation - DRAG_ROTATE_DELTA, task.rotation + DRAG_ROTATE_DELTA, task.rotation - DRAG_ROTATE_DELTA],
+                opacity: isDone ? 0.4 : 1,
+                scale: isLongPressTarget ? 1.06 : 1,
+                y: 0,
+              }
             : isSwapping
             ? { scale: SWAP_SCALE, rotate: task.rotation, opacity: isDone ? 0.4 : 1, y: 0 }
             : { opacity: isDone ? 0.4 : 1, scale: 1, rotate: task.rotation, y: 0 }
@@ -154,7 +208,6 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
             : { type: "spring", stiffness: 300, damping: 28 }
         }
         className="relative"
-        onPointerDown={() => setShowDeleteConfirm(false)}
       >
         {/* 고정 핀 */}
         {isPinned && (
@@ -194,8 +247,11 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
           style={{
             backgroundColor: color,
             aspectRatio: isTodo ? "1/1" : "3/4",
-            boxShadow: `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
+            boxShadow: isLongPressTarget
+              ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
+              : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
             filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
+            transition: "box-shadow 0.18s ease",
           }}
         >
           <div
@@ -294,59 +350,6 @@ function PostItCard({ task, style, memberAvatar, isDragging, isDropTarget, isSwa
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* 삭제 확인 팝업 — motion.div 뒤에 배치해서 위에 렌더링 */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: 6 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex flex-col items-center gap-2.5 px-4 py-3 rounded-2xl"
-            style={{
-              background: "rgba(28,28,32,0.97)",
-              backdropFilter: "blur(20px)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-              minWidth: 148,
-              zIndex: 60,
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <div
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
-              style={{ background: "rgba(28,28,32,0.97)" }}
-            />
-            <p className="text-white/70 text-xs font-medium">삭제할까요?</p>
-            <div className="flex gap-2 w-full">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); }}
-                className="flex-1 py-1.5 rounded-xl text-xs font-semibold text-white/40"
-                style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-              >
-                취소
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); startDelete(); }}
-                className="flex-1 py-1.5 rounded-xl text-xs font-semibold text-white"
-                style={{ backgroundColor: "#E53935" }}
-              >
-                삭제
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 외부 클릭 닫기 */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirm(false)} />
-      )}
     </div>
   );
 }
