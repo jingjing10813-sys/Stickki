@@ -13,9 +13,35 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [agreeAll, setAgreeAll] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+
+  function handleAgreeAll(checked: boolean) {
+    setAgreeAll(checked);
+    setAgreeTerms(checked);
+    setAgreePrivacy(checked);
+    setAgreeMarketing(checked);
+  }
+
+  function handleIndividual(key: "terms" | "privacy" | "marketing", checked: boolean) {
+    if (key === "terms") setAgreeTerms(checked);
+    if (key === "privacy") setAgreePrivacy(checked);
+    if (key === "marketing") setAgreeMarketing(checked);
+    const next = {
+      terms: key === "terms" ? checked : agreeTerms,
+      privacy: key === "privacy" ? checked : agreePrivacy,
+      marketing: key === "marketing" ? checked : agreeMarketing,
+    };
+    setAgreeAll(next.terms && next.privacy && next.marketing);
+  }
+
+  const requiredAgreed = agreeTerms && agreePrivacy;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password) return;
+    if (!email.trim() || !password || !requiredAgreed) return;
     setLoading(true);
     setError("");
 
@@ -31,7 +57,6 @@ export default function SignupPage() {
 
   return (
     <main className="min-h-screen dot-pattern flex flex-col items-center justify-center px-5">
-      {/* 장식용 포스트잇들 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           initial={{ opacity: 0, rotate: -8 }}
@@ -101,6 +126,46 @@ export default function SignupPage() {
               />
             </div>
 
+            {/* 동의 조항 */}
+            <div
+              className="flex flex-col gap-3 rounded-2xl px-4 py-4"
+              style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
+            >
+              <button
+                type="button"
+                onClick={() => handleAgreeAll(!agreeAll)}
+                className="flex items-center gap-3"
+              >
+                <CheckCircle checked={agreeAll} />
+                <span className="t-text text-sm font-semibold">전체 동의</span>
+              </button>
+
+              <div className="h-px" style={{ backgroundColor: "var(--border-color)" }} />
+
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => handleIndividual("terms", !agreeTerms)} className="flex items-center gap-3">
+                  <CheckCircle checked={agreeTerms} small />
+                  <span className="t-text-muted text-xs">서비스 이용약관 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
+                </button>
+                <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => handleIndividual("privacy", !agreePrivacy)} className="flex items-center gap-3">
+                  <CheckCircle checked={agreePrivacy} small />
+                  <span className="t-text-muted text-xs">개인정보 처리방침 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
+                </button>
+                <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => handleIndividual("marketing", !agreeMarketing)} className="flex items-center gap-3">
+                  <CheckCircle checked={agreeMarketing} small />
+                  <span className="t-text-muted text-xs">마케팅 정보 수신 동의 <span className="t-text-faint">(선택)</span></span>
+                </button>
+              </div>
+            </div>
+
             <AnimatePresence>
               {error && (
                 <motion.p
@@ -118,10 +183,10 @@ export default function SignupPage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               type="submit"
-              disabled={loading || !email.trim() || !password}
-              className="w-full py-4 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30 mt-2"
+              disabled={loading || !email.trim() || !password || !requiredAgreed}
+              className="w-full py-4 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30 mt-1"
             >
-              {loading ? "가입 중..." : "시작하기 ✦"}
+              {loading ? "가입 중..." : "시작하기"}
             </motion.button>
           </form>
         </div>
@@ -134,5 +199,27 @@ export default function SignupPage() {
         </p>
       </motion.div>
     </main>
+  );
+}
+
+function CheckCircle({ checked, small }: { checked: boolean; small?: boolean }) {
+  const size = small ? 18 : 22;
+  return (
+    <div
+      className="flex-shrink-0 flex items-center justify-center rounded-full"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: checked ? "#000" : "transparent",
+        border: checked ? "2px solid #000" : "2px solid var(--border-color)",
+        transition: "background 0.15s, border-color 0.15s",
+      }}
+    >
+      {checked && (
+        <svg width={small ? 9 : 11} height={small ? 7 : 8} viewBox="0 0 11 8" fill="none">
+          <path d="M1 4L4 7L10 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </div>
   );
 }
