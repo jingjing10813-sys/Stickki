@@ -491,6 +491,33 @@ export default function WhiteboardPage() {
             {group.motto}
           </motion.button>
         )}
+        {tasks.length > 0 && (
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => setViewAll((v) => !v)}
+            className="absolute right-5 glass rounded-full"
+            style={{ padding: "4px 10px 4px 8px", display: "flex", alignItems: "center", gap: 5, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+          >
+            {viewAll ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
+                </svg>
+                <span className="text-xs font-semibold t-text-muted">스크롤</span>
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
+                </svg>
+                <span className="text-xs font-semibold t-text-muted">전체보기</span>
+              </>
+            )}
+          </motion.button>
+        )}
       </div>
 
       <div
@@ -550,35 +577,6 @@ export default function WhiteboardPage() {
           </div>
         )}
       </div>
-
-      {/* 전체보기 ↔ 스크롤 토글 */}
-      {tasks.length > 0 && (
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => setViewAll((v) => !v)}
-          className="absolute z-30 glass rounded-full"
-          style={{ bottom: 72, right: 20, padding: "5px 10px 5px 8px", boxShadow: "0 2px 10px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", gap: 5 }}
-        >
-          {viewAll ? (
-            <>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
-              </svg>
-              <span className="text-xs font-semibold t-text-muted">스크롤</span>
-            </>
-          ) : (
-            <>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-              </svg>
-              <span className="text-xs font-semibold t-text-muted">전체보기</span>
-            </>
-          )}
-        </motion.button>
-      )}
 
       <MemberBar members={group.members ?? []} inviteCode={group.invite_code} onRemove={handleRemoveMember} />
 
