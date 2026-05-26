@@ -14,7 +14,7 @@ function generateInviteCode(): string {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { loading: authLoading, user } = useAuth();
+  const { loading: authLoading, user, signOut } = useAuth();
   const [step, setStep] = useState<Step>("landing");
 
   // 로그인 후 마지막 방으로 자동 복귀 (localStorage → DB 순으로 조회)
@@ -134,6 +134,19 @@ export default function OnboardingPage() {
               >
                 초대코드로 입장
               </motion.button>
+              {user && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={async () => {
+                    localStorage.removeItem("last_group_id");
+                    await signOut();
+                    router.push("/login");
+                  }}
+                  className="w-full text-sm font-medium t-text-muted py-2"
+                >
+                  다른 계정으로 로그인
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}
