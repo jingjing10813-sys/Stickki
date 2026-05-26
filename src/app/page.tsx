@@ -22,13 +22,11 @@ export default function OnboardingPage() {
     if (authLoading || !user) return;
 
     async function redirectToGroup() {
-      // 1) localStorage에 저장된 방이 있으면 바로 이동
       const lastGroupId = localStorage.getItem("last_group_id");
       if (lastGroupId) {
         router.replace(`/${lastGroupId}`);
         return;
       }
-      // 2) DB에서 내가 속한 그룹 조회
       const { data } = await supabase
         .from("groups")
         .select("id")
