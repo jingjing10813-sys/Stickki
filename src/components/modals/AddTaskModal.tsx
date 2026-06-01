@@ -29,7 +29,9 @@ export default function AddTaskModal({ groupId, members, onClose, newPosition }:
   async function handleSubmit() {
     if (!content.trim() || loading) return;
     setLoading(true);
+    // eslint-disable-next-line react-hooks/purity
     const rotation = (Math.random() - 0.5) * 14;
+    // eslint-disable-next-line react-hooks/purity
     const position_x = newPosition?.x ?? Date.now();
     const position_y = newPosition?.y ?? 0;
     await supabase.from("tasks").insert({

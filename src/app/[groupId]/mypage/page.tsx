@@ -27,7 +27,9 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!user || !profile) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNameInput(profile.name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedAvatar(profile.avatar);
 
     supabase.from("groups").select("*").eq("id", groupId).single()

@@ -224,6 +224,7 @@ export default function WhiteboardPage() {
     if (authLoading || !user) return;
 
     if (!profile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowProfileSetup(true);
       return;
     }

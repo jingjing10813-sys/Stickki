@@ -40,4 +40,6 @@ export interface Task {
   reactions: Record<string, number>;
   color: string | null;
   is_pinned?: boolean;
+  due_date?: string | null;
+  start_date?: string | null;
 }
