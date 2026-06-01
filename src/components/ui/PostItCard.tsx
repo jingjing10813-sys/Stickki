@@ -17,21 +17,22 @@ export const NOTE_COLORS = [
   "#C8E6C9", "#E1BEE7", "#FFCCBC", "#FFECB3",
 ];
 
-// 이미지처럼 접힌 쪽지 모양 (sealed/folded state)
+// 쪽지 봉인 모양 — 디자인 SVG 그대로 사용, 색상만 prop으로 교체
 function SealedNoteShape({
   color,
+  isPinned = false,
   isDropTarget = false,
   isLongPressTarget = false,
 }: {
   color: string;
+  isPinned?: boolean;
   isDropTarget?: boolean;
   isLongPressTarget?: boolean;
 }) {
-  const s = 148;
-  const h = s / 2; // 74
-  const dHalf = 40;
-  const dcx = 110;
-  const dcy = s + 16;
+  const containerW = 148;
+  const svgW = 107;
+  const svgH = 126;
+  const svgLeft = (containerW - svgW) / 2; // 가운데 정렬
 
   const svgFilter = isLongPressTarget
     ? "drop-shadow(0 0 8px rgba(255,59,48,0.7)) drop-shadow(4px 7px 6px rgba(0,0,0,0.18))"
@@ -39,139 +40,43 @@ function SealedNoteShape({
     ? "drop-shadow(0 0 6px var(--btn-primary-bg)) drop-shadow(4px 7px 6px rgba(0,0,0,0.18))"
     : "drop-shadow(4px 7px 6px rgba(0,0,0,0.2))";
 
+  const pinFill    = isPinned ? "#F59E0B" : "#D4483F";
+  const pinNeedle  = isPinned ? "#B45309" : "#A92E26";
+  const pinShine   = isPinned ? "#FCD34D" : "#E5918C";
+
   return (
-    <div style={{ position: "relative", width: s, height: dcy + dHalf + 8 }}>
+    <div style={{ position: "relative", width: containerW, height: svgH }}>
       <svg
-        width={dcx + dHalf + 8}
-        height={dcy + dHalf + 8}
-        viewBox={`0 0 ${dcx + dHalf + 8} ${dcy + dHalf + 8}`}
+        width={svgW}
+        height={svgH}
+        viewBox="0 0 107 126"
+        fill="none"
         style={{
           position: "absolute",
           top: 0,
-          left: 0,
+          left: svgLeft,
           filter: svgFilter,
           overflow: "visible",
           transition: "filter 0.15s ease",
         }}
       >
-        {/* 위쪽 삼각형 */}
-        <polygon points={`0,0 ${s},0 ${h},${h}`} fill={color} />
-        {/* 왼쪽 삼각형 */}
-        <polygon points={`0,0 ${h},${h} 0,${s}`} fill={color} />
-        {/* 오른쪽 삼각형 (입체감) */}
-        <polygon points={`${s},0 ${s},${s} ${h},${h}`} fill={color} />
-        <polygon points={`${s},0 ${s},${s} ${h},${h}`} fill="rgba(0,0,0,0.18)" />
-        {/* 아래쪽 삼각형 (안쪽 흰 면) */}
-        <polygon points={`0,${s} ${h},${h} ${s},${s}`} fill="rgba(255,255,255,0.58)" />
-        {/* 다이아몬드 꼬리 */}
-        <polygon
-          points={`${dcx},${dcy - dHalf} ${dcx + dHalf},${dcy} ${dcx},${dcy + dHalf} ${dcx - dHalf},${dcy}`}
-          fill={color}
-        />
+        {/* 봉투 덮개 — 상단 흰 삼각형 */}
+        <path d="M17 7H47H77L47 37L17 7Z" fill="white" />
+        {/* 봉투 오른쪽 면 */}
+        <path d="M77 7L77 37L77 67L47 37L77 7Z" fill={color} />
+        {/* 봉투 왼쪽 면 */}
+        <path d="M17 7L17 37L17 67L47 37L17 7Z" fill={color} />
+        {/* 안쪽 종이 — 흰 다이아몬드 */}
+        <path d="M0 83.6992L46.6985 37.0008L76.7505 67.0528L30.052 113.751L0 83.6992Z" fill="white" />
+        {/* 꼬리 다이아몬드 */}
+        <path d="M77.0547 66L106.4 95.3456L76.3482 125.398L47.0026 96.052L77.0547 66Z" fill={color} />
+        {/* 핀 바늘 */}
+        <rect x="46" y="10" width="2" height="8" rx="1" fill={pinNeedle} />
+        {/* 핀 머리 */}
+        <circle cx="47" cy="6" r="6" fill={pinFill} />
+        {/* 핀 하이라이트 */}
+        <circle cx="45" cy="4" r="2" fill={pinShine} />
       </svg>
-    </div>
-  );
-}
-
-// 쪽지가 펼쳐진 상태
-function OpenNoteView({
-  color,
-  content,
-  assigneeName,
-  isDone,
-  isLongPressTarget,
-  isDropTarget,
-}: {
-  color: string;
-  content: string;
-  assigneeName: string | null;
-  isDone: boolean;
-  isLongPressTarget: boolean;
-  isDropTarget: boolean;
-}) {
-  return (
-    <div
-      style={{
-        width: 148,
-        minHeight: 148,
-        backgroundColor: color,
-        borderRadius: 12,
-        position: "relative",
-        overflow: "hidden",
-        boxShadow: isLongPressTarget
-          ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
-          : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
-        filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
-        clipPath: "polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%)",
-        transition: "box-shadow 0.18s ease",
-      }}
-    >
-      {/* 접힌 모서리 그림자 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          width: 28,
-          height: 28,
-          background: "linear-gradient(225deg, rgba(0,0,0,0.12) 50%, transparent 50%)",
-          zIndex: 1,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* 드롭 타겟 아웃라인 */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: 12,
-          outline: "3px solid var(--btn-primary-bg)",
-          outlineOffset: 2,
-          opacity: isDropTarget ? 1 : 0,
-          transition: "opacity 80ms ease",
-          zIndex: 1,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* 줄 텍스처 */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-          opacity: 0.5,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* 내용 */}
-      <div style={{ padding: "14px 12px 12px", position: "relative", zIndex: 2 }}>
-        <motion.p
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 26 }}
-          className="font-motto text-black/80 leading-snug"
-          style={{
-            fontSize: content.length > 30 ? 12 : 14,
-            textDecoration: isDone ? "line-through" : "none",
-            minHeight: 80,
-          }}
-        >
-          {content}
-        </motion.p>
-        {assigneeName && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-black/35 text-[10px] font-sans mt-2"
-          >
-            {assigneeName}
-          </motion.p>
-        )}
-      </div>
     </div>
   );
 }
@@ -210,6 +115,7 @@ interface PostItCardProps {
   onDragStart?: (id: string, clientX: number, clientY: number) => void;
   onLongPress?: (id: string) => void;
   onTap?: (id: string) => void;
+  onNoteOpen?: (id: string) => void;
 }
 
 function PostItCard({
@@ -224,10 +130,10 @@ function PostItCard({
   onDragStart,
   onLongPress,
   onTap,
+  onNoteOpen,
 }: PostItCardProps) {
   const isPinned = task.is_pinned ?? false;
   const [showPicker, setShowPicker] = useState(false);
-  const [isNoteOpen, setIsNoteOpen] = useState(false);
   const isTodo = task.type === "todo";
   const ddayInfo = isTodo ? getDdayInfo(task.due_date) : null;
   const isDone = task.status === "done";
@@ -325,8 +231,7 @@ function PostItCard({
         singleTapTimerRef.current = setTimeout(() => {
           singleTapTimerRef.current = null;
           if (!isTodo) {
-            // 쪽지: 탭하면 접힘/펼침 토글
-            setIsNoteOpen((prev) => !prev);
+            onNoteOpen?.(task.id);
           } else {
             onTap?.(task.id);
           }
@@ -383,8 +288,8 @@ function PostItCard({
         }
         className="relative"
       >
-        {/* 고정 핀 */}
-        {isPinned && (
+        {/* 고정 핀 — todo만 표시 (쪽지는 SealedNoteShape 안에 내장) */}
+        {isPinned && isTodo && (
           <motion.div
             initial={{ scale: 0, y: -8 }}
             animate={{ scale: 1, y: 0 }}
@@ -402,43 +307,13 @@ function PostItCard({
 
         {/* 카드 본체 */}
         {!isTodo ? (
-          /* 쪽지: 접힌 상태 ↔ 펼친 상태 */
-          <AnimatePresence mode="wait">
-            {!isNoteOpen ? (
-              <motion.div
-                key="sealed"
-                initial={{ opacity: 0, scale: 0.82 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.13 } }}
-                transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              >
-                <SealedNoteShape
-                  color={color}
-                  isDropTarget={isDropTarget}
-                  isLongPressTarget={isLongPressTarget}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="open"
-                initial={{ opacity: 0, scale: 0.88, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.88, y: 8, transition: { duration: 0.13 } }}
-                transition={{ type: "spring", stiffness: 360, damping: 26 }}
-              >
-                <OpenNoteView
-                  color={color}
-                  content={task.content}
-                  assigneeName={task.assignee_name}
-                  isDone={isDone}
-                  isLongPressTarget={isLongPressTarget ?? false}
-                  isDropTarget={isDropTarget ?? false}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <SealedNoteShape
+            color={color}
+            isPinned={isPinned}
+            isDropTarget={isDropTarget}
+            isLongPressTarget={isLongPressTarget}
+          />
         ) : (
-          /* 할일: 기존 카드 그대로 */
           <div
             className="rounded-xl overflow-visible select-none"
             style={{

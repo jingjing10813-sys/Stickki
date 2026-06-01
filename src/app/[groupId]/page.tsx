@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Task, Member } from "@/types";
-import PostItCard from "@/components/ui/PostItCard";
+import PostItCard, { getColor, NOTE_COLORS } from "@/components/ui/PostItCard";
 import MemberBar from "@/components/ui/MemberBar";
 import AddTaskModal from "@/components/modals/AddTaskModal";
 
@@ -56,6 +56,9 @@ export default function WhiteboardPage() {
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const dragActiveRef = useRef(false);
   const dropTargetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 쪽지 모달
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
 
   // 휴지통 드래그-삭제 상태
   const [longPressId, setLongPressId] = useState<string | null>(null);
@@ -518,6 +521,7 @@ export default function WhiteboardPage() {
                               onDragStart={handleCardDragStart}
                               onLongPress={handleCardLongPress}
                               onTap={handleCardTap}
+                              onNoteOpen={setOpenNoteId}
                             />
                           </div>
                         );
@@ -621,6 +625,119 @@ export default function WhiteboardPage() {
         {showModal && (
           <AddTaskModal groupId={groupId} members={group.members ?? []} onClose={() => setShowModal(false)} newPosition={nextPosition ?? undefined} />
         )}
+      </AnimatePresence>
+
+      {/* 쪽지 모달 — 딤 배경 + 펼쳐지는 애니메이션 */}
+      <AnimatePresence>
+        {openNoteId && (() => {
+          const note = tasks.find((t) => t.id === openNoteId);
+          if (!note) return null;
+          const noteColor = note.color ?? getColor(note.id, NOTE_COLORS);
+          return (
+            <motion.div
+              key="note-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setOpenNoteId(null)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.7)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                zIndex: 400,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 28px",
+              }}
+            >
+              {/* 핀 */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: 0.12, duration: 0.15 }}
+                style={{
+                  position: "absolute",
+                  top: "calc(50% - 185px)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))",
+                  zIndex: 2,
+                  pointerEvents: "none",
+                }}
+              >
+                <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
+                  <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
+                  <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
+                  <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
+                </svg>
+              </motion.div>
+
+              {/* 쪽지 카드 */}
+              <motion.div
+                key="note-card"
+                initial={{ scaleY: 0.04, scaleX: 0.65, opacity: 0 }}
+                animate={{ scaleY: 1, scaleX: 1, opacity: 1 }}
+                exit={{ scaleY: 0.04, scaleX: 0.65, opacity: 0 }}
+                transition={{
+                  scaleY: { type: "spring", stiffness: 380, damping: 32, delay: 0.05 },
+                  scaleX: { type: "spring", stiffness: 380, damping: 32, delay: 0.05 },
+                  opacity: { duration: 0.12, delay: 0.05 },
+                }}
+                style={{
+                  transformOrigin: "top center",
+                  width: "100%",
+                  maxWidth: 320,
+                  position: "relative",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    backgroundColor: noteColor,
+                    borderRadius: 20,
+                    overflow: "hidden",
+                    clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 0 100%)",
+                    boxShadow: "0 30px 70px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.25)",
+                    position: "relative",
+                  }}
+                >
+                  {/* 접힌 모서리 */}
+                  <div style={{
+                    position: "absolute", top: 0, right: 0,
+                    width: 40, height: 40,
+                    background: "linear-gradient(225deg, rgba(0,0,0,0.18) 50%, transparent 50%)",
+                    zIndex: 1, pointerEvents: "none",
+                  }} />
+                  {/* 줄 텍스처 */}
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,0.045) 27px, rgba(0,0,0,0.045) 28px)",
+                    opacity: 0.55, pointerEvents: "none",
+                  }} />
+                  {/* 내용 */}
+                  <div style={{ padding: "28px 24px 32px", position: "relative", zIndex: 2 }}>
+                    <p
+                      className="font-motto text-black/80 leading-relaxed"
+                      style={{ fontSize: note.content.length > 80 ? 13 : 16, minHeight: 80 }}
+                    >
+                      {note.content}
+                    </p>
+                    {note.assignee_name && (
+                      <p className="text-black/40 text-[12px] font-sans mt-6">
+                        {note.assignee_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </main>
   );
