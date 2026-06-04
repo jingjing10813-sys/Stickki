@@ -13,12 +13,12 @@ import AddTaskModal from "@/components/modals/AddTaskModal";
 const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧","🦁","🐮","🐷","🐙","🦋","🐺","🦝"];
 const MEMBER_COLORS = ["#FF6B6B","#FF9F43","#FECA57","#48DBFB","#FF9FF3","#54A0FF","#5F27CD","#01CBC6"];
 
-const CELL_W = 172;
-const CELL_H = 224;
+const CELL_W = 320;
+const CELL_H = 290;
 const PADDING = 20;
 const SCATTER = 14;
-const FIXED_ROWS = 5;
-const GRID_VERSION = "v3";
+const FIXED_ROWS = 3;
+const GRID_VERSION = "v5";
 
 function hashInt(str: string) {
   let h = 0;
@@ -207,7 +207,7 @@ export default function WhiteboardPage() {
   const cols = Math.max(2, Math.ceil(tasks.length / FIXED_ROWS));
   const actualRows = tasks.length === 0 ? 1 : Math.min(FIXED_ROWS, tasks.length);
   const gridNaturalW = cols * CELL_W + PADDING * 2;
-  const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
+  const gridNaturalH = (actualRows - 1) * CELL_H + 220 + PADDING * 2;
 
   const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
   const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
@@ -639,7 +639,7 @@ export default function WhiteboardPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3, delay: 0.28 }}
               onClick={() => setOpenNoteId(null)}
               style={{
                 position: "fixed",
@@ -654,44 +654,22 @@ export default function WhiteboardPage() {
                 padding: "40px 28px",
               }}
             >
-              {/* 핀 */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ delay: 0.12, duration: 0.15 }}
-                style={{
-                  position: "absolute",
-                  top: "calc(50% - 185px)",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))",
-                  zIndex: 2,
-                  pointerEvents: "none",
-                }}
-              >
-                <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
-                  <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
-                  <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
-                  <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
-                </svg>
-              </motion.div>
-
               {/* 쪽지 카드 */}
               <motion.div
                 key="note-card"
-                initial={{ scaleY: 0.04, scaleX: 0.65, opacity: 0 }}
+                initial={{ scaleY: 0.01, scaleX: 0.25, opacity: 0 }}
                 animate={{ scaleY: 1, scaleX: 1, opacity: 1 }}
-                exit={{ scaleY: 0.04, scaleX: 0.65, opacity: 0 }}
+                exit={{ scaleY: 0.01, scaleX: 0.25, opacity: 0 }}
                 transition={{
-                  scaleY: { type: "spring", stiffness: 380, damping: 32, delay: 0.05 },
-                  scaleX: { type: "spring", stiffness: 380, damping: 32, delay: 0.05 },
-                  opacity: { duration: 0.12, delay: 0.05 },
+                  scaleX: { type: "spring", stiffness: 440, damping: 34 },
+                  scaleY: { type: "spring", stiffness: 300, damping: 26, delay: 0.1 },
+                  opacity: { duration: 0.06 },
                 }}
                 style={{
                   transformOrigin: "top center",
                   width: "100%",
-                  maxWidth: 320,
+                  maxWidth: 300,
+                  aspectRatio: "1 / 1",
                   position: "relative",
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -699,20 +677,14 @@ export default function WhiteboardPage() {
                 <div
                   style={{
                     backgroundColor: noteColor,
-                    borderRadius: 20,
+                    borderRadius: 28,
                     overflow: "hidden",
-                    clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 0 100%)",
                     boxShadow: "0 30px 70px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.25)",
                     position: "relative",
+                    width: "100%",
+                    height: "100%",
                   }}
                 >
-                  {/* 접힌 모서리 */}
-                  <div style={{
-                    position: "absolute", top: 0, right: 0,
-                    width: 40, height: 40,
-                    background: "linear-gradient(225deg, rgba(0,0,0,0.18) 50%, transparent 50%)",
-                    zIndex: 1, pointerEvents: "none",
-                  }} />
                   {/* 줄 텍스처 */}
                   <div style={{
                     position: "absolute", inset: 0,
@@ -720,15 +692,15 @@ export default function WhiteboardPage() {
                     opacity: 0.55, pointerEvents: "none",
                   }} />
                   {/* 내용 */}
-                  <div style={{ padding: "28px 24px 32px", position: "relative", zIndex: 2 }}>
+                  <div style={{ padding: "28px 24px 32px", position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <p
                       className="font-motto text-black/80 leading-relaxed"
-                      style={{ fontSize: note.content.length > 80 ? 13 : 16, minHeight: 80 }}
+                      style={{ fontSize: note.content.length > 80 ? 13 : 16 }}
                     >
                       {note.content}
                     </p>
                     {note.assignee_name && (
-                      <p className="text-black/40 text-[12px] font-sans mt-6">
+                      <p className="text-black/40 text-[12px] font-sans">
                         {note.assignee_name}
                       </p>
                     )}

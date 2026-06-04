@@ -29,9 +29,9 @@ function SealedNoteShape({
   isDropTarget?: boolean;
   isLongPressTarget?: boolean;
 }) {
-  const containerW = 148;
-  const svgW = 107;
-  const svgH = 126;
+  const containerW = 260;
+  const svgW = 188;
+  const svgH = 220;
   const svgLeft = (containerW - svgW) / 2; // 가운데 정렬
 
   const svgFilter = isLongPressTarget
@@ -177,7 +177,7 @@ function PostItCard({
       data-card-id={task.id}
       className="relative"
       style={{
-        width: 148,
+        width: isTodo ? 168 : 260,
         paddingBottom: 20,
         zIndex: isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
         pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
