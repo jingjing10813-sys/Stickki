@@ -150,10 +150,10 @@ export default function TaskDetailPage() {
 
   return (
     <motion.main
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ type: "spring", stiffness: 380, damping: 38 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="h-dvh flex flex-col relative"
       style={{
         paddingTop: "calc(var(--spacing) * 4)",
@@ -252,9 +252,10 @@ export default function TaskDetailPage() {
 
       {/* 바텀시트 */}
       <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 35, delay: 0.06 }}
+        initial={{ y: 600 }}
+        animate={{ y: 0 }}
+        exit={{ y: 600 }}
+        transition={{ type: "spring", stiffness: 380, damping: 40 }}
         className="absolute t-elevated rounded-3xl overflow-hidden"
         style={{
           left: SHEET_SIDE,

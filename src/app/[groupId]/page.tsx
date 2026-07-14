@@ -433,17 +433,17 @@ export default function WhiteboardPage() {
 
   return (
     <main className="h-dvh dot-pattern flex flex-col overflow-hidden">
-      <header className="flex-shrink-0 flex items-center justify-between px-5 pb-4 relative" style={{ paddingTop: "calc(var(--spacing) * 4)" }}>
+      <header className="flex-shrink-0 flex items-center justify-between px-5 pb-4 relative" style={{ paddingTop: 20 }}>
         <span className="font-display font-bold t-text text-lg tracking-tight">Stickki</span>
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
           <span className="text-sm">🏠</span>
           <span className="font-display t-text font-semibold text-sm tracking-tight">{group.name}</span>
         </div>
         <div className="flex items-center gap-2">
-<motion.button
+          <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => router.push(`/${groupId}/list`)}
-            className="w-9 h-9 glass rounded-full flex items-center justify-center"
+            className="w-11 h-11 glass rounded-full flex items-center justify-center"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor" fillOpacity="0.7"/>
@@ -454,7 +454,7 @@ export default function WhiteboardPage() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => router.push(`/${groupId}/mypage`)}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-xl overflow-hidden"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-xl overflow-hidden"
             style={{
               background: me ? me.color + "99" : "var(--card)",
               border: me ? "none" : "1.5px dashed var(--border-mid)",

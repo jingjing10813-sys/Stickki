@@ -306,11 +306,11 @@ export default function ListPage() {
   return (
     <main className="min-h-screen t-bg flex flex-col">
       {/* 헤더 */}
-      <header className="flex items-center justify-between px-5 pb-4 t-bg" style={{ paddingTop: "calc(var(--spacing) * 4)" }}>
+      <header className="flex items-center justify-between px-5 pb-4 t-bg" style={{ paddingTop: 20 }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-9 h-9 glass rounded-full flex items-center justify-center"
+          className="w-11 h-11 glass rounded-full flex items-center justify-center"
         >
           <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
             <path d="M8 2L2 8L8 14" stroke="currentColor" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -319,7 +319,7 @@ export default function ListPage() {
         <h1 className="font-display font-bold t-text text-lg">
           {group?.name ?? ""}의 흔적
         </h1>
-        <div className="w-9" />
+        <div className="w-11" />
       </header>
 
       {/* 필터 탭 */}

@@ -39,10 +39,7 @@ export default function MyPage() {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showInviteSheet, setShowInviteSheet] = useState(false);
-  const [showRoomInfo, setShowRoomInfo] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
-  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     if (!user || !profile) return;
@@ -130,13 +127,6 @@ export default function MyPage() {
     router.push("/login");
   }
 
-  async function handleCopyCode() {
-    if (!group?.invite_code) return;
-    await navigator.clipboard.writeText(group.invite_code);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2000);
-  }
-
   const doneTasks = myTasks.filter((t) => t.type === "todo" && t.status === "done");
   const pendingTasks = myTasks.filter((t) => t.type === "todo" && t.status === "pending");
   const receivedNotes = myTasks.filter((t) => t.type === "note");
@@ -158,11 +148,11 @@ export default function MyPage() {
   return (
     <main className="min-h-screen flex flex-col" style={myPageBg}>
       {/* 헤더 */}
-      <header className="flex items-center justify-between px-5 pb-4" style={{ paddingTop: "calc(var(--spacing) * 4)" }}>
+      <header className="flex items-center justify-between px-5 pb-4" style={{ paddingTop: 20 }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-9 h-9 glass rounded-full flex items-center justify-center"
+          className="w-11 h-11 glass rounded-full flex items-center justify-center"
         >
           <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
             <path d="M8 2L2 8L8 14" stroke="currentColor" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -172,7 +162,7 @@ export default function MyPage() {
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={toggle}
-          className="w-9 h-9 glass rounded-full flex items-center justify-center"
+          className="w-11 h-11 glass rounded-full flex items-center justify-center"
         >
           {theme === "dark" ? (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -197,25 +187,24 @@ export default function MyPage() {
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 22 }}
-              className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
-              style={{ backgroundColor: "var(--card)", border: "1.5px solid var(--border-color)" }}
+              className="rounded-full flex items-center justify-center text-5xl"
+              style={{ width: 100, height: 100, backgroundColor: "var(--card)", border: "1.5px solid var(--border-color)" }}
             >
               {me.avatar}
             </motion.div>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => { setNameInput(me.name); setSelectedAvatar(me.avatar); setShowEditModal(true); }}
-              className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "var(--card)", border: "1.5px solid var(--border-color)" }}
+              className="absolute bottom-0 right-0 rounded-full flex items-center justify-center"
+              style={{ width: 28, height: 28, backgroundColor: "#E5E5E5" }}
             >
-              <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-                <path d="M2 10.5L4.5 10L10.5 4L10 3.5L4 9.5L2 10.5Z" fill="currentColor" opacity="0.6"/>
-                <path d="M10 3.5L10.5 4L11.5 3L11 2.5L10 3.5Z" fill="currentColor" opacity="0.6"/>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M11.2502 5.41671L14.5835 8.75004M3.3335 16.6668H6.66683L15.4168 7.91676C15.6357 7.69789 15.8093 7.43805 15.9278 7.15208C16.0462 6.86612 16.1072 6.55962 16.1072 6.25009C16.1072 5.94056 16.0462 5.63406 15.9278 5.3481C15.8093 5.06213 15.6357 4.80229 15.4168 4.58342C15.198 4.36455 14.9381 4.19094 14.6522 4.07248C14.3662 3.95403 14.0597 3.89307 13.7502 3.89307C13.4406 3.89307 13.1341 3.95403 12.8482 4.07248C12.5622 4.19094 12.3024 4.36455 12.0835 4.58342L3.3335 13.3334V16.6668Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
               </svg>
             </motion.button>
           </div>
           <p className="font-display font-bold t-text text-xl mb-0.5">{me.name}</p>
-          <p className="t-text-faint text-sm">{user?.email}</p>
+          <p className="text-sm" style={{ color: "#A1A1AA" }}>{user?.email}</p>
         </div>
 
         {/* ── 통계 row ── */}
@@ -231,7 +220,7 @@ export default function MyPage() {
               style={{ backgroundColor: "rgba(228, 228, 231, 0.5)", borderRadius: 10, padding: "14px 10px", gap: 6 }}
             >
               <p className="font-bold text-xl t-text leading-none">{stat.count}</p>
-              <p className="text-xs t-text-faint">{stat.label}</p>
+              <p className="text-xs" style={{ color: "#71717A" }}>{stat.label}</p>
             </div>
           ))}
         </div>
@@ -242,7 +231,7 @@ export default function MyPage() {
           <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E4E4E7", borderRadius: 20, overflow: "hidden" }}>
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowInviteSheet(true)}
+              onClick={() => router.push(`/${groupId}/mypage/invite-code`)}
               className="w-full flex items-center justify-between"
               style={{ padding: "16px 20px" }}
             >
@@ -252,7 +241,7 @@ export default function MyPage() {
             <div style={{ height: 1, backgroundColor: "#E4E4E7", marginLeft: 10, marginRight: 10 }} />
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowRoomInfo(true)}
+              onClick={() => router.push(`/${groupId}/mypage/room-info`)}
               className="w-full flex items-center justify-between"
               style={{ padding: "16px 20px" }}
             >
@@ -316,109 +305,6 @@ export default function MyPage() {
         </div>
 
       </div>
-
-      {/* 초대 코드 시트 */}
-      <AnimatePresence>
-        {showInviteSheet && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center"
-          >
-            <div
-              className="absolute inset-0"
-              style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.4)" }}
-              onClick={() => setShowInviteSheet(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 40 }}
-              className="relative w-full max-w-lg t-elevated rounded-t-3xl pt-3 pb-10 px-5 z-10"
-            >
-              <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "var(--border-mid)" }} />
-              <p className="font-display font-bold t-text text-lg text-center mb-6">초대 코드</p>
-              <div
-                className="rounded-2xl px-5 py-5 mb-4 text-center"
-                style={{ backgroundColor: "var(--canvas)", border: "1px solid var(--border-color)" }}
-              >
-                <p className="font-mono font-bold text-3xl t-text tracking-widest">{group.invite_code}</p>
-              </div>
-              <p className="t-text-faint text-xs text-center mb-5">친구에게 이 코드를 공유하면 방에 초대할 수 있어요</p>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleCopyCode}
-                className="w-full py-3.5 rounded-2xl font-semibold text-sm t-btn-primary"
-              >
-                {codeCopied ? "복사됨 ✓" : "코드 복사"}
-              </motion.button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 방 정보 시트 */}
-      <AnimatePresence>
-        {showRoomInfo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center"
-          >
-            <div
-              className="absolute inset-0"
-              style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.4)" }}
-              onClick={() => setShowRoomInfo(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 40 }}
-              className="relative w-full max-w-lg t-elevated rounded-t-3xl pt-3 pb-10 px-5 z-10"
-            >
-              <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "var(--border-mid)" }} />
-              <p className="font-display font-bold t-text text-lg text-center mb-6">방 정보</p>
-              <div className="space-y-3">
-                <div className="rounded-2xl px-4 py-4" style={{ backgroundColor: "var(--canvas)", border: "1px solid var(--border-color)" }}>
-                  <p className="t-text-faint text-xs mb-1">방 이름</p>
-                  <p className="t-text font-semibold text-base">{group.name}</p>
-                </div>
-                {group.motto && (
-                  <div className="rounded-2xl px-4 py-4" style={{ backgroundColor: "var(--canvas)", border: "1px solid var(--border-color)" }}>
-                    <p className="t-text-faint text-xs mb-1">방 소개</p>
-                    <p className="t-text text-sm">{group.motto}</p>
-                  </div>
-                )}
-                <div className="rounded-2xl px-4 py-4" style={{ backgroundColor: "var(--canvas)", border: "1px solid var(--border-color)" }}>
-                  <p className="t-text-faint text-xs mb-2">멤버 ({(group.members ?? []).length}명)</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(group.members ?? []).map((m) => (
-                      <div key={m.id} className="flex items-center gap-1.5">
-                        <span className="text-base">{m.avatar}</span>
-                        <span className="t-text text-sm">{m.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border-color)" }}>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => { setShowRoomInfo(false); setShowLeaveConfirm(true); }}
-                  className="w-full py-3.5 rounded-2xl font-semibold text-sm"
-                  style={{ backgroundColor: "rgba(229,57,53,0.08)", color: "#E53935" }}
-                >
-                  방 나가기
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 정보 수정 모달 */}
       <AnimatePresence>
