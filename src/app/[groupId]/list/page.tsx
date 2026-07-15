@@ -54,8 +54,9 @@ function MiniPostIt({ task }: { task: Task }) {
     : getColor(task.id, NOTE_COLORS);
   return (
     <div
-      className="w-20 h-20 rounded-2xl flex-shrink-0 p-2.5 relative overflow-hidden"
+      className="w-[90px] h-[90px] flex-shrink-0 p-2.5 relative overflow-hidden"
       style={{
+        borderRadius: 8,
         backgroundColor: color,
         transform: `rotate(${task.rotation * 0.5}deg)`,
         boxShadow: "0 2px 10px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.5)",
@@ -69,7 +70,7 @@ function MiniPostIt({ task }: { task: Task }) {
           </svg>
         </div>
       )}
-      <p className="font-motto text-black/70 text-[10px] leading-tight line-clamp-3 mt-2">
+      <p className="font-motto text-black/70 text-[12px] leading-tight line-clamp-3 mt-2">
         {task.content}
       </p>
     </div>
@@ -314,8 +315,8 @@ export default function ListPage() {
               {activeFilter === tab.value && (
                 <motion.span
                   layoutId="list-filter-pill"
-                  className="absolute inset-0 rounded-full"
-                  style={{ backgroundColor: "var(--btn-primary-bg)", zIndex: -1 }}
+                  className="absolute inset-0"
+                  style={{ backgroundColor: "var(--btn-primary-bg)", borderRadius: 12, zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
               )}
@@ -339,7 +340,7 @@ export default function ListPage() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               >
                 {/* 날짜 섹션 헤더 */}
-                <div className="flex items-center gap-2 px-1" style={{ marginBottom: 10 }}>
+                <div className="flex items-center gap-2" style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 8 }}>
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                     <circle cx="6" cy="6" r="5" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1.2" className="t-text"/>
                     <path d="M6 3.5V6L7.5 7.5" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1.2" strokeLinecap="round" className="t-text"/>
@@ -356,10 +357,10 @@ export default function ListPage() {
                 <motion.div
                   whileTap={{ scale: 0.975 }}
                   onClick={() => setSelectedDate(dateKey)}
-                  className="rounded-3xl p-4 cursor-pointer"
-                  style={{ backgroundColor: "var(--card)", boxShadow: "0 2px 14px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)" }}
+                  className="pt-4 px-4 pb-6 cursor-pointer"
+                  style={{ borderRadius: 10, backgroundColor: "var(--card)", boxShadow: "0 2px 14px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)" }}
                 >
-                  <h2 className="font-display font-bold t-text leading-tight mb-0.5" style={{ fontSize: 14 }}>
+                  <h2 className="font-display font-bold t-text leading-tight" style={{ fontSize: 14, marginBottom: dateTasks.length > 1 ? 2 : 8 }}>
                     {dateTasks[0].content.length > 20
                       ? dateTasks[0].content.slice(0, 20) + "..."
                       : dateTasks[0].content}
@@ -371,12 +372,24 @@ export default function ListPage() {
                   )}
 
                   {/* 미니 포스트잇 프리뷰 */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  <div
+                    className="flex gap-[10px] overflow-x-auto scrollbar-rounded"
+                    style={{
+                      paddingTop: 4,
+                      paddingBottom: 12,
+                      paddingLeft: 10,
+                      paddingRight: 10,
+                      marginTop: -4,
+                      marginBottom: -12,
+                      marginLeft: 0,
+                      marginRight: 0,
+                    }}
+                  >
                     {dateTasks.slice(0, 6).map((task) => (
                       <MiniPostIt key={task.id} task={task} />
                     ))}
                     {dateTasks.length > 6 && (
-                      <div className="w-20 h-20 rounded-2xl flex-shrink-0 t-card flex items-center justify-center">
+                      <div className="w-[90px] h-[90px] flex-shrink-0 t-card flex items-center justify-center" style={{ borderRadius: 8 }}>
                         <span className="t-text-faint text-xs">+{dateTasks.length - 6}</span>
                       </div>
                     )}
