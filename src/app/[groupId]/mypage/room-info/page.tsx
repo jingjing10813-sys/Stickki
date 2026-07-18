@@ -62,7 +62,7 @@ export default function RoomInfoPage() {
 
   if (!group) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-white">
+      <main className="min-h-screen flex items-center justify-center dot-pattern">
         <span className="text-sm text-gray-400">불러오는 중...</span>
       </main>
     );
@@ -71,7 +71,7 @@ export default function RoomInfoPage() {
   const memberCount = (group.members ?? []).length;
 
   return (
-    <main className="min-h-screen flex flex-col bg-white">
+    <main className="min-h-screen flex flex-col dot-pattern">
       {/* 헤더 */}
       <header className="flex items-center px-5 pb-4 relative" style={{ paddingTop: 20 }}>
         <motion.button

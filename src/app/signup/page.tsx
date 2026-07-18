@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { StickkiWordmarkWithTape } from "@/components/ui/StickkiLogos";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -56,161 +57,101 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen dot-pattern flex flex-col items-center justify-center px-5">
-      {/* 장식용 포스트잇들 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, rotate: -8 }}
-          animate={{ opacity: 1, rotate: -8 }}
-          transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 24 }}
-          className="absolute top-16 -left-4 w-28 h-28 rounded-xl"
-          style={{ backgroundColor: "#FFECB3", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-        />
-        <motion.div
-          initial={{ opacity: 0, rotate: 12 }}
-          animate={{ opacity: 1, rotate: 12 }}
-          transition={{ delay: 0.18, type: "spring", stiffness: 200, damping: 24 }}
-          className="absolute top-24 -right-6 w-24 h-24 rounded-xl"
-          style={{ backgroundColor: "#E1BEE7", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-        />
-        <motion.div
-          initial={{ opacity: 0, rotate: 6 }}
-          animate={{ opacity: 1, rotate: 6 }}
-          transition={{ delay: 0.24, type: "spring", stiffness: 200, damping: 24 }}
-          className="absolute bottom-24 -left-3 w-20 h-20 rounded-xl"
-          style={{ backgroundColor: "#FFCCBC", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-        />
-      </div>
-
+    <main className="min-h-screen dot-pattern flex flex-col items-center px-6">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 280, damping: 28 }}
-        className="w-full max-w-sm relative"
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        className="w-full max-w-sm"
+        style={{ paddingTop: "calc(10vh - 20px)" }}
       >
-        <div className="text-center mb-8">
-          <h1 className="font-display font-bold t-text text-4xl tracking-tight mb-2">Stickki</h1>
-          <p className="font-motto t-text-muted text-base">우리 사이, 더 끈끈하게.</p>
+        <div className="flex justify-center mb-10">
+          <StickkiWordmarkWithTape style={{ width: 140, height: 47, color: "#1a1a1a" }} />
         </div>
 
-        <div
-          className="t-elevated rounded-3xl px-6 py-8"
-          style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}
-        >
-          <h2 className="font-display font-bold t-text text-xl mb-6">회원가입</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일"
+            className="w-full rounded-2xl px-4 py-3.5 text-sm outline-none placeholder:text-[#CECECE]"
+            style={{ border: "1px solid rgba(0,0,0,0.1)", color: "#1a1a1a" }}
+            required
+          />
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="t-text-muted text-xs font-medium">이메일</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="hello@stickki.com"
-                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none"
-                style={{ border: "1px solid var(--border-color)" }}
-                required
-              />
-            </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호 (6자 이상)"
+            minLength={6}
+            className="w-full rounded-2xl px-4 py-3.5 text-sm outline-none placeholder:text-[#CECECE]"
+            style={{ border: "1px solid rgba(0,0,0,0.1)", color: "#1a1a1a" }}
+            required
+          />
 
-            <div className="flex flex-col gap-1.5">
-              <label className="t-text-muted text-xs font-medium">비밀번호</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="6자 이상"
-                minLength={6}
-                className="w-full t-card rounded-2xl px-4 py-3.5 t-text text-sm outline-none"
-                style={{ border: "1px solid var(--border-color)" }}
-                required
-              />
-            </div>
+          {/* 동의 조항 */}
+          <div className="flex flex-col gap-3 rounded-2xl px-4 py-4 mt-1" style={{ border: "1px solid rgba(0,0,0,0.1)" }}>
+            <button type="button" onClick={() => handleAgreeAll(!agreeAll)} className="flex items-center gap-3">
+              <CheckCircle checked={agreeAll} />
+              <span className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>전체 동의</span>
+            </button>
 
-            {/* 동의 조항 */}
-            <div
-              className="flex flex-col gap-3 rounded-2xl px-4 py-4 mt-1"
-              style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
-            >
-              {/* 전체 동의 */}
-              <button
-                type="button"
-                onClick={() => handleAgreeAll(!agreeAll)}
-                className="flex items-center gap-3"
-              >
-                <CheckCircle checked={agreeAll} />
-                <span className="t-text text-sm font-semibold">전체 동의</span>
+            <div className="h-px" style={{ backgroundColor: "rgba(0,0,0,0.1)" }} />
+
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => handleIndividual("terms", !agreeTerms)} className="flex items-center gap-3">
+                <CheckCircle checked={agreeTerms} small />
+                <span className="text-xs" style={{ color: "#6b6b6b" }}>서비스 이용약관 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
               </button>
-
-              <div className="h-px" style={{ backgroundColor: "var(--border-color)" }} />
-
-              {/* 이용약관 (필수) */}
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => handleIndividual("terms", !agreeTerms)}
-                  className="flex items-center gap-3"
-                >
-                  <CheckCircle checked={agreeTerms} small />
-                  <span className="t-text-muted text-xs">서비스 이용약관 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
-                </button>
-                <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
-              </div>
-
-              {/* 개인정보 처리방침 (필수) */}
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => handleIndividual("privacy", !agreePrivacy)}
-                  className="flex items-center gap-3"
-                >
-                  <CheckCircle checked={agreePrivacy} small />
-                  <span className="t-text-muted text-xs">개인정보 처리방침 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
-                </button>
-                <span className="t-text-faint text-xs underline underline-offset-2 cursor-pointer">보기</span>
-              </div>
-
-              {/* 마케팅 수신 (선택) */}
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => handleIndividual("marketing", !agreeMarketing)}
-                  className="flex items-center gap-3"
-                >
-                  <CheckCircle checked={agreeMarketing} small />
-                  <span className="t-text-muted text-xs">마케팅 정보 수신 동의 <span className="t-text-faint">(선택)</span></span>
-                </button>
-              </div>
+              <span className="text-xs underline underline-offset-2 cursor-pointer" style={{ color: "#CECECE" }}>보기</span>
             </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-xs text-center"
-                  style={{ color: "#E53935" }}
-                >
-                  {error}
-                </motion.p>
-              )}
-            </AnimatePresence>
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => handleIndividual("privacy", !agreePrivacy)} className="flex items-center gap-3">
+                <CheckCircle checked={agreePrivacy} small />
+                <span className="text-xs" style={{ color: "#6b6b6b" }}>개인정보 처리방침 동의 <span style={{ color: "#E53935" }}>(필수)</span></span>
+              </button>
+              <span className="text-xs underline underline-offset-2 cursor-pointer" style={{ color: "#CECECE" }}>보기</span>
+            </div>
 
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              type="submit"
-              disabled={loading || !email.trim() || !password || !requiredAgreed}
-              className="w-full py-4 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30 mt-1"
-            >
-              {loading ? "가입 중..." : "시작하기"}
-            </motion.button>
-          </form>
-        </div>
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => handleIndividual("marketing", !agreeMarketing)} className="flex items-center gap-3">
+                <CheckCircle checked={agreeMarketing} small />
+                <span className="text-xs" style={{ color: "#6b6b6b" }}>마케팅 정보 수신 동의 <span style={{ color: "#CECECE" }}>(선택)</span></span>
+              </button>
+            </div>
+          </div>
 
-        <p className="text-center t-text-muted text-sm mt-6">
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-xs text-center"
+                style={{ color: "#E53935" }}
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            type="submit"
+            disabled={loading || !email.trim() || !password || !requiredAgreed}
+            className="w-full py-3.5 rounded-2xl font-semibold text-sm disabled:opacity-30 mt-1"
+            style={{ backgroundColor: "#27272A", color: "#F4F4F5" }}
+          >
+            {loading ? "가입 중..." : "시작하기"}
+          </motion.button>
+        </form>
+
+        <p className="text-center text-sm mt-6" style={{ color: "#6b6b6b" }}>
           이미 계정이 있나요?{" "}
-          <Link href="/login" className="t-text font-semibold underline underline-offset-2">
+          <Link href="/login" className="font-semibold underline underline-offset-2" style={{ color: "#1a1a1a" }}>
             로그인
           </Link>
         </p>

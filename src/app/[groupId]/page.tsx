@@ -9,16 +9,24 @@ import type { Group, Task, Member } from "@/types";
 import PostItCard from "@/components/ui/PostItCard";
 import MemberBar from "@/components/ui/MemberBar";
 import AddTaskModal from "@/components/modals/AddTaskModal";
+import { Avatar } from "@/components/ui/Avatar";
+import { StickkiLogo } from "@/components/ui/StickkiLogos";
 
 const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧","🦁","🐮","🐷","🐙","🦋","🐺","🦝"];
 const MEMBER_COLORS = ["#FF6B6B","#FF9F43","#FECA57","#48DBFB","#FF9FF3","#54A0FF","#5F27CD","#01CBC6"];
 
-const CELL_W = 172;
-const CELL_H = 290;
 const PADDING = 20;
 const SCATTER = 14;
-const FIXED_ROWS = 5;
-const GRID_VERSION = "v3";
+const FIXED_COLS = 2;
+const FIXED_ROWS = 4;
+const CARDS_PER_GROUP = FIXED_COLS * FIXED_ROWS; // 8 — 이 개수 채우면 옆으로 새 2열 그룹 시작
+const GRID_VERSION = "v4";
+
+// 4개까지는 180x180, 5개부터는 140x140으로 축소 (배열 사이즈 목업 기준 — 이보다 작아지면 안 됨)
+function getCellSize(count: number) {
+  const cardSize = count > 4 ? 140 : 180;
+  return { cardSize, cellW: cardSize + 20, cellH: cardSize + 20 };
+}
 
 function hashInt(str: string) {
   let h = 0;
@@ -26,13 +34,40 @@ function hashInt(str: string) {
   return Math.abs(h);
 }
 
-function computeGridPos(index: number, taskId: string) {
-  const col = Math.floor(index / FIXED_ROWS);
-  const row = index % FIXED_ROWS;
+function computeGridPos(index: number, taskId: string, cellW: number, cellH: number) {
+  const indexInGroup = index % CARDS_PER_GROUP;
+  const groupIndex = Math.floor(index / CARDS_PER_GROUP);
+  const localCol = indexInGroup % FIXED_COLS;
+  const localRow = Math.floor(indexInGroup / FIXED_COLS);
+  const col = groupIndex * FIXED_COLS + localCol;
+  const row = localRow;
   const h = hashInt(taskId);
   const sx = ((h % (SCATTER * 2)) - SCATTER);
   const sy = (((h >> 6) % (SCATTER * 2)) - SCATTER);
-  return { x: PADDING + col * CELL_W + sx, y: PADDING + row * CELL_H + sy };
+  return { x: PADDING + col * cellW + sx, y: PADDING + row * cellH + sy };
+}
+
+// 4개 이하일 때 전용 배치 — 배열 사이즈 목업(포스트잇 1/2/3/4.png) 기준: 오른쪽 컬럼부터 시작해서
+// 좌우 번갈아가며 겹치듯 아래로 쌓이는 형태, 화면 폭 안에 항상 다 들어오게 고정 x 앵커 사용
+const LOW_COUNT_RIGHT_X = 155;
+const LOW_COUNT_LEFT_X = 20;
+const LOW_COUNT_Y_BASE = 20;
+const LOW_COUNT_Y_STEP = 150;
+const LOW_COUNT_SCATTER = 10;
+
+function computeLowCountPos(index: number, taskId: string) {
+  const isRight = index % 2 === 0;
+  const h = hashInt(taskId);
+  const sx = ((h % (LOW_COUNT_SCATTER * 2)) - LOW_COUNT_SCATTER);
+  const sy = (((h >> 6) % (LOW_COUNT_SCATTER * 2)) - LOW_COUNT_SCATTER);
+  return {
+    x: (isRight ? LOW_COUNT_RIGHT_X : LOW_COUNT_LEFT_X) + sx,
+    y: LOW_COUNT_Y_BASE + index * LOW_COUNT_Y_STEP + sy,
+  };
+}
+
+function getPos(index: number, taskId: string, count: number, cellW: number, cellH: number) {
+  return count <= 4 ? computeLowCountPos(index, taskId) : computeGridPos(index, taskId, cellW, cellH);
 }
 
 export default function WhiteboardPage() {
@@ -187,28 +222,24 @@ export default function WhiteboardPage() {
     router.push(`/${groupId}/${id}`);
   }, [groupId, router]);
 
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const update = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (width > 0 && height > 0) setCanvasSize({ w: width - 40, h: height - 60 });
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { cardSize, cellW, cellH } = getCellSize(tasks.length);
+  const isLowCount = tasks.length <= 4;
+  let gridNaturalW: number;
+  let gridNaturalH: number;
+  if (isLowCount) {
+    gridNaturalW = LOW_COUNT_RIGHT_X + cardSize + PADDING;
+    gridNaturalH = LOW_COUNT_Y_BASE + Math.max(0, tasks.length - 1) * LOW_COUNT_Y_STEP + cardSize + PADDING;
+  } else {
+    const totalGroups = Math.ceil(tasks.length / CARDS_PER_GROUP);
+    const lastGroupCount = tasks.length - (totalGroups - 1) * CARDS_PER_GROUP;
+    const cols = totalGroups * FIXED_COLS;
+    const actualRows = totalGroups > 1 ? FIXED_ROWS : Math.min(FIXED_ROWS, Math.ceil(lastGroupCount / FIXED_COLS));
+    gridNaturalW = cols * cellW + PADDING * 2;
+    gridNaturalH = (actualRows - 1) * cellH + cardSize + PADDING * 2;
+  }
 
-  const cols = Math.max(2, Math.ceil(tasks.length / FIXED_ROWS));
-  const actualRows = tasks.length === 0 ? 1 : Math.min(FIXED_ROWS, tasks.length);
-  const gridNaturalW = cols * CELL_W + PADDING * 2;
-  const gridNaturalH = (actualRows - 1) * CELL_H + 148 + PADDING * 2;
-
-  const [viewAll, setViewAll] = useState(true);
-  const scrollScale = Math.min(1.2, Math.max(0.5, canvasSize.h / gridNaturalH));
-  const fitScale = Math.min(0.95, canvasSize.w / gridNaturalW, canvasSize.h / gridNaturalH);
-  const gridScale = viewAll ? fitScale : scrollScale;
+  // 카드는 항상 스펙 그대로(180/140) — 확대/축소 없이 고정 크기로 렌더링
+  const gridScale = 1;
 
 
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -255,12 +286,13 @@ export default function WhiteboardPage() {
       .then(({ data }) => {
         if (!data) return;
         const storedVersion = localStorage.getItem(`grid_version_${groupId}`);
-        // 퍼센트 기반 구 포지션 감지: 카드가 FIXED_ROWS 초과인데 x가 전부 CELL_W 미만이면 구 데이터
-        const looksLikeOldData = data.length > FIXED_ROWS && data.every((t) => (t.position_x ?? 0) < CELL_W);
+        // 퍼센트 기반 구 포지션 감지: 카드가 FIXED_ROWS 초과인데 x가 전부 200 미만이면 구 데이터
+        const looksLikeOldData = data.length > FIXED_ROWS && data.every((t) => (t.position_x ?? 0) < 200);
         const needsMigration = storedVersion !== GRID_VERSION || data.some((t) => t.position_y === 0) || looksLikeOldData;
         if (needsMigration) {
+          const { cellW: mCellW, cellH: mCellH } = getCellSize(data.length);
           const migrated = data.map((task, i) => {
-            const { x, y } = computeGridPos(i, task.id);
+            const { x, y } = getPos(i, task.id, data.length, mCellW, mCellH);
             return { ...task, position_x: x, position_y: y };
           });
           setTasks(migrated);
@@ -336,15 +368,16 @@ export default function WhiteboardPage() {
       { content: "고마워 ❤️", type: "note" },
       { content: "약속 잡기", type: "todo" },
     ];
+    const { cellW: dCellW, cellH: dCellH } = getCellSize(tasks.length + dummies.length);
     for (let i = 0; i < dummies.length; i++) {
-      const { x, y } = computeGridPos(tasks.length + i, `dummy-${i}`);
+      const { y } = getPos(tasks.length + i, `dummy-${i}`, tasks.length + dummies.length, dCellW, dCellH);
       await supabase.from("tasks").insert({
         group_id: groupId,
         content: dummies[i].content,
         type: dummies[i].type,
         status: "pending",
         rotation: (Math.random() - 0.5) * 12,
-        position_x: x,
+        position_x: Date.now() + i,
         position_y: y,
         color: ["#FFF9C4","#F8BBD9","#B2EBF2","#C8E6C9","#FFCCBC","#E1BEE7"][i % 6],
       });
@@ -433,17 +466,19 @@ export default function WhiteboardPage() {
 
   return (
     <main className="h-dvh dot-pattern flex flex-col overflow-hidden">
-      <header className="flex-shrink-0 flex items-center justify-between px-5 pb-4 relative" style={{ paddingTop: 20 }}>
-        <span className="font-display font-bold t-text text-lg tracking-tight">Stickki</span>
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
-          <span className="text-sm">🏠</span>
-          <span className="font-display t-text font-semibold text-sm tracking-tight">{group.name}</span>
+      <header className="flex-shrink-0 flex items-start justify-between px-5" style={{ paddingTop: 20 }}>
+        <div className="flex flex-col items-start">
+          <span className="font-ongeulip t-text-muted text-sm tracking-tight flex items-center gap-1">
+            <span>🏠</span>{group.name}
+          </span>
+          <StickkiLogo style={{ width: 88, height: "auto", color: "var(--text-1)", marginTop: 6 }} />
         </div>
         <div className="flex items-center gap-2">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => router.push(`/${groupId}/list`)}
-            className="w-11 h-11 glass rounded-full flex items-center justify-center"
+            className="w-11 h-11 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "var(--card)" }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor" fillOpacity="0.7"/>
@@ -456,12 +491,14 @@ export default function WhiteboardPage() {
             onClick={() => router.push(`/${groupId}/mypage`)}
             className="w-11 h-11 rounded-full flex items-center justify-center text-xl overflow-hidden"
             style={{
-              background: me ? me.color + "99" : "var(--card)",
-              border: me ? "none" : "1.5px dashed var(--border-mid)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              backgroundColor: "#FFFFFF",
+              border: "1.5px solid #E5E5E5",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
-            {me ? me.avatar : (
+            {me ? (
+              <Avatar avatar={me.avatar} fallback={me.avatar} size={44} />
+            ) : (
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="1.4"/>
                 <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="1.4" strokeLinecap="round"/>
@@ -471,7 +508,7 @@ export default function WhiteboardPage() {
         </div>
       </header>
 
-      <div className="flex-shrink-0 flex items-center justify-center px-5" style={{ marginBottom: 0 }}>
+      <div className="flex-shrink-0 flex items-center justify-start px-5" style={{ marginTop: 20, marginBottom: 0 }}>
         {editingMotto ? (
           <input
             autoFocus
@@ -479,61 +516,31 @@ export default function WhiteboardPage() {
             onChange={(e) => setMottoValue(e.target.value)}
             onBlur={saveMotto}
             onKeyDown={(e) => e.key === "Enter" && saveMotto()}
-            className="font-motto text-xs bg-transparent outline-none text-center w-48 t-text-muted"
+            className="font-ongeulip text-sm bg-transparent outline-none text-left w-48 t-text-muted"
             style={{ borderBottom: "1px solid var(--border-mid)" }}
           />
         ) : (
           <motion.button
             whileHover={{ scale: 1.03 }}
             onClick={() => setEditingMotto(true)}
-            className="font-motto text-xs t-text-muted"
+            className="font-ongeulip text-sm t-text-muted"
           >
             {group.motto}
           </motion.button>
         )}
       </div>
 
-      {tasks.length > 0 && (
-        <div className="flex-shrink-0 flex items-center justify-end px-5" style={{ paddingTop: 10, paddingBottom: 0 }}>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => setViewAll((v) => !v)}
-            className="glass rounded-full"
-            style={{ padding: "4px 10px 4px 8px", display: "flex", alignItems: "center", gap: 5, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-          >
-            {viewAll ? (
-              <>
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 8h12M10 5l3 3-3 3M6 5L3 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
-                </svg>
-                <span className="text-xs font-semibold t-text-muted">스크롤</span>
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                  <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                  <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                  <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                  <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"/>
-                </svg>
-                <span className="text-xs font-semibold t-text-muted">전체보기</span>
-              </>
-            )}
-          </motion.button>
-        </div>
-      )}
-
       <div
         ref={canvasRef}
         className="flex-1 relative"
-        style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "0px 20px 40px 20px" }}
+        style={{ minHeight: 0, overflowX: "auto", overflowY: "auto", padding: "24px 20px 40px 20px" }}
       >
         {tasks.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
           </div>
         ) : (
-          <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
+          <div style={{ minWidth: "100%", minHeight: "100%", display: "flex", alignItems: "flex-start", justifyContent: "flex-start" }}>
             <div style={{ width: gridNaturalW * gridScale, height: gridNaturalH * gridScale, position: "relative", flexShrink: 0 }}>
               <div style={{ width: gridNaturalW, transform: `scale(${gridScale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                 {(() => {
@@ -544,7 +551,7 @@ export default function WhiteboardPage() {
                   return (
                     <>
                       {sorted.map((task, i) => {
-                        const { x, y } = computeGridPos(i, task.id);
+                        const { x, y } = getPos(i, task.id, tasks.length, cellW, cellH);
                         const member = (group.members ?? []).find((m) => m.name === task.assignee_name);
                         const isSwapping = swappingIds !== null && swappingIds.includes(task.id);
                         return (
@@ -568,6 +575,8 @@ export default function WhiteboardPage() {
                               onDragStart={handleCardDragStart}
                               onLongPress={handleCardLongPress}
                               onTap={handleCardTap}
+                              size={cardSize}
+                              style={{ width: cardSize }}
                             />
                           </div>
                         );
@@ -593,11 +602,10 @@ export default function WhiteboardPage() {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
             onClick={() => {
-              const col = Math.floor(tasks.length / FIXED_ROWS);
-              const row = tasks.length % FIXED_ROWS;
-              const sx = Math.round((Math.random() - 0.5) * SCATTER * 2);
-              const sy = Math.round((Math.random() - 0.5) * SCATTER * 2);
-              setNextPosition({ x: PADDING + col * CELL_W + sx, y: PADDING + row * CELL_H + sy });
+              const { cellW: nCellW, cellH: nCellH } = getCellSize(tasks.length + 1);
+              const { y } = getPos(tasks.length, `next-${tasks.length}`, tasks.length + 1, nCellW, nCellH);
+              // position_x는 정렬 기준(생성 순서)으로도 쓰이므로 그리드 좌표가 아니라 항상 마지막으로 정렬되는 타임스탬프를 사용
+              setNextPosition({ x: Date.now(), y });
               setShowModal(true);
             }}
             transition={{ type: "spring", stiffness: 400, damping: 28 }}

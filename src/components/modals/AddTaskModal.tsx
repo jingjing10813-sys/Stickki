@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import type { Member, TaskType } from "@/types";
 import { TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
+import { Avatar } from "@/components/ui/Avatar";
 
 type DateType = "마감일" | "기간" | "없음";
 
@@ -170,8 +171,9 @@ export default function AddTaskModal({ groupId, members, onClose, newPosition }:
           }}
         />
         {type === "todo" && selectedMember && (
-          <div className="absolute bottom-3 left-4 text-xs text-black/50 truncate">
-            {selectedMember.avatar || "🧑"} {selectedMember.name}
+          <div className="absolute bottom-3 left-4 flex items-center gap-1 text-xs text-black/50 truncate">
+            <Avatar avatar={selectedMember.avatar} fallback="🧑" size={14} />
+            {selectedMember.name}
           </div>
         )}
       </motion.div>
@@ -251,7 +253,7 @@ export default function AddTaskModal({ groupId, members, onClose, newPosition }:
                       color: isSelected ? "var(--btn-primary-text)" : "var(--text-3)",
                     }}
                   >
-                    <span className="text-xs leading-none">{member.avatar || "🧑"}</span>
+                    <Avatar avatar={member.avatar} fallback="🧑" size={14} className="text-xs leading-none" />
                     {member.name}
                   </button>
                 );
@@ -391,7 +393,7 @@ export default function AddTaskModal({ groupId, members, onClose, newPosition }:
         <div className="mb-6">
           <p className="text-sm font-semibold t-text mb-2.5">포스트잇 색상</p>
           <div className="flex gap-3">
-            {colors.map((c) => (
+            {[...new Set(colors)].map((c) => (
               <button
                 key={c}
                 onClick={() => setSelectedColor(c)}

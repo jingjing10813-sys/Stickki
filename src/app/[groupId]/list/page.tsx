@@ -276,14 +276,7 @@ export default function ListPage() {
   }, [selectedDate, grouped]);
 
   return (
-    <main
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundColor: "#FFFFFF",
-        backgroundImage: "radial-gradient(circle, #E5E7EB 1.5px, transparent 1.5px)",
-        backgroundSize: "24px 24px",
-      }}
-    >
+    <main className="min-h-screen flex flex-col dot-pattern">
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pb-4" style={{ paddingTop: 20 }}>
         <motion.button
