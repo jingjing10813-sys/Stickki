@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Member, Task } from "@/types";
 import { useTheme } from "@/lib/theme";
+import { Avatar } from "@/components/ui/Avatar";
 
 function isImageAvatar(avatar: string): boolean {
   return avatar.startsWith("data:") || avatar.startsWith("http");
@@ -210,22 +211,16 @@ export default function MyPage() {
   const pendingTasks = myTasks.filter((t) => t.type === "todo" && t.status === "pending");
   const receivedNotes = myTasks.filter((t) => t.type === "note");
 
-  const myPageBg: React.CSSProperties = {
-    backgroundColor: "#FFFFFF",
-    backgroundImage: "radial-gradient(circle, #E5E7EB 1.5px, transparent 1.5px)",
-    backgroundSize: "24px 24px",
-  };
-
   if (!group || !me) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={myPageBg}>
+      <main className="min-h-screen flex items-center justify-center dot-pattern">
         <span className="t-text-faint text-sm">불러오는 중...</span>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col" style={myPageBg}>
+    <main className="min-h-screen flex flex-col dot-pattern">
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pb-4" style={{ paddingTop: 20 }}>
         <motion.button
@@ -266,10 +261,10 @@ export default function MyPage() {
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 22 }}
-              className="rounded-full flex items-center justify-center text-5xl"
-              style={{ width: 100, height: 100, backgroundColor: "var(--card)", border: "1.5px solid var(--border-color)" }}
+              className="rounded-full flex items-center justify-center text-5xl overflow-hidden"
+              style={{ width: 100, height: 100, backgroundColor: "#FFFFFF", border: "1.5px solid #E5E5E5" }}
             >
-              {me.avatar}
+              <Avatar avatar={me.avatar} fallback={me.avatar} size={100} className="text-5xl" />
             </motion.div>
             <motion.button
               whileTap={{ scale: 0.9 }}

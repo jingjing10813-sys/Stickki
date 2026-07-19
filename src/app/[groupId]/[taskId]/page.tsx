@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import type { Task, Member } from "@/types";
 import { getColor, TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
+import { Avatar } from "@/components/ui/Avatar";
 
 type DateType = "마감일" | "기간" | "없음";
 
@@ -345,7 +346,7 @@ export default function TaskDetailPage() {
                             color: assigneeName === m.name ? "var(--btn-primary-text)" : "var(--text-3)",
                           }}
                         >
-                          <span className="text-xs">{m.avatar || "🧑"}</span>
+                          <Avatar avatar={m.avatar} fallback="🧑" size={14} className="text-xs" />
                           {m.name}
                         </button>
                       ))}

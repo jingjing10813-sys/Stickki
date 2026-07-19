@@ -54,11 +54,12 @@ function MiniPostIt({ task }: { task: Task }) {
     : getColor(task.id, NOTE_COLORS);
   return (
     <div
-      className="w-16 h-16 rounded-xl flex-shrink-0 p-2 relative overflow-hidden"
+      className="w-[90px] h-[90px] flex-shrink-0 p-2.5 relative overflow-hidden"
       style={{
+        borderRadius: 8,
         backgroundColor: color,
         transform: `rotate(${task.rotation * 0.5}deg)`,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.5)",
       }}
     >
       <div
@@ -69,31 +70,35 @@ function MiniPostIt({ task }: { task: Task }) {
         }}
       />
       {task.type === "note" && (
-        <div className="absolute top-0.5 left-1/2 -translate-x-1/2">
+        <div className="absolute top-1 left-1/2 -translate-x-1/2">
           <svg width="8" height="12" viewBox="0 0 20 32" fill="none">
             <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
             <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
           </svg>
         </div>
       )}
-      <p className="font-motto text-black/70 text-[9px] leading-tight line-clamp-3 mt-2">
+      <p className="font-motto text-black/70 text-[12px] leading-tight line-clamp-3 mt-2">
         {task.content}
       </p>
     </div>
   );
 }
 
-// ─── 블러 그리드 모달 ─────────────────────────────────────────────
+// ─── 전체화면 그리드 ─────────────────────────────────────────────
 interface GridModalProps {
   tasks: Task[];
   members: Member[];
   groupId: string;
   dateLabel: string;
-  filter: FilterTab;
   onClose: () => void;
 }
 
-function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }: GridModalProps) {
+function daysSince(dateStr: string): number {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function PostItGridModal({ tasks, members, groupId, dateLabel, onClose }: GridModalProps) {
   const router = useRouter();
 
   return (
@@ -101,61 +106,57 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-50 flex flex-col bg-white/70 dark:bg-black/60"
-      style={{ backdropFilter: "blur(20px)" }}
-      onClick={onClose}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ backgroundColor: "#8E8E93" }}
     >
       {/* 헤더 */}
-      <div
-        className="flex-shrink-0 flex items-center justify-between px-5 pb-4"
-        style={{ paddingTop: "calc(var(--spacing) * 4)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div>
-          <p className="font-display font-bold text-xl text-black/80 dark:text-white">
-            {dateLabel}{getFilterSuffix(filter)}
-          </p>
-          <p className="text-xs mt-0.5 text-black/40 dark:text-white/40">{tasks.length}개</p>
-        </div>
+      <div className="flex-shrink-0 flex items-center justify-between px-5 pb-4" style={{ paddingTop: 60 }}>
         <motion.button
           whileTap={{ scale: 0.88 }}
           onClick={onClose}
-          className="w-9 h-9 rounded-full flex items-center justify-center bg-black/8 dark:bg-white/12"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.8" strokeLinecap="round"/>
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+            <path d="M1 1l10 10M11 1L1 11" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </motion.button>
+
+        <div className="text-center">
+          <p className="font-display font-bold text-white" style={{ fontSize: 17 }}>{dateLabel}</p>
+          <p className="text-white/60" style={{ fontSize: 13 }}>{tasks.length}개</p>
+        </div>
+
+        <div className="w-10" />
       </div>
 
-      {/* 카드 그리드 */}
-      <div
-        className="flex-1 overflow-y-auto px-5 pb-10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8">
+      {/* 카드 그리드 — 2열 균등 배치 */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingLeft: 20, paddingRight: 20, paddingBottom: 40 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+          }}
+        >
           {tasks.map((task, i) => {
             const color = task.type === "todo"
               ? getColor(task.id, TODO_COLORS)
               : getColor(task.id, NOTE_COLORS);
-            const isPinned = task.is_pinned ?? false;
-            const isTodo = task.type === "todo";
             const isDone = task.status === "done";
-            const member = members.find((m) => m.name === task.assignee_name);
-            const reactions: Record<string, number> = task.reactions ?? {};
-            const reactionEntries = Object.entries(reactions).filter(([, c]) => c > 0);
-
-            // 그리드에서 너무 기울면 어색하므로 rotation 살짝 줄임
-            const tilt = Math.max(-4, Math.min(4, task.rotation * 0.5));
+            const d = daysSince(task.created_at);
+            const tilt = (i % 2 === 0 ? 1 : -1) * (2 + (i % 3));
 
             return (
+              <div key={task.id} style={{ padding: 12 }}>
               <motion.div
-                key={task.id}
-                initial={{ opacity: 0, scale: 0.82, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.05 }}
-                className="relative cursor-pointer"
+                initial={{ opacity: 0, scale: 0.9, rotate: tilt }}
+                animate={{ opacity: 1, scale: 1, rotate: tilt }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
+                onClick={() => router.push(`/${groupId}/${task.id}`)}
+                className="relative cursor-pointer flex flex-col"
                 style={{
                   width: "100%",
                   aspectRatio: "1 / 1",
@@ -171,13 +172,21 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }
                   <div
                     className="flex items-center justify-center flex-shrink-0"
                     style={{
-                      backgroundColor: color,
-                      aspectRatio: isTodo ? "1/1" : "3/4",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.55)",
-                      filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
+                      width: 24, height: 24, borderRadius: 12,
+                      border: `2px solid ${isDone ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)"}`,
+                      backgroundColor: isDone ? "rgba(0,0,0,0.22)" : "transparent",
                     }}
                   >
-                    <div className="absolute inset-0 rounded-xl pointer-events-none"
+                    {isDone && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    )}
+                  </div>
+
+                  {d > 0 && (
+                    <div
+                      className="flex items-center justify-center"
                       style={{
                         background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
                         opacity: 0.5,
@@ -228,8 +237,9 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }
                       ))}
                     </div>
                   )}
-                </div>
+                </motion.div>
               </motion.div>
+              </div>
             );
           })}
         </div>
@@ -289,9 +299,9 @@ export default function ListPage() {
   }, [selectedDate, grouped]);
 
   return (
-    <main className="min-h-screen t-bg flex flex-col">
+    <main className="min-h-screen flex flex-col dot-pattern">
       {/* 헤더 */}
-      <header className="flex items-center justify-between px-5 pb-4 t-bg" style={{ paddingTop: 20 }}>
+      <header className="flex items-center justify-between px-5 pb-4" style={{ paddingTop: 20 }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
@@ -308,15 +318,21 @@ export default function ListPage() {
       </header>
 
       {/* 필터 탭 */}
-      <div className="px-5 pb-4 t-bg">
+      <div className="px-5 pb-4">
         <div className="flex gap-2">
           {FILTER_TABS.map((tab) => (
             <motion.button
               key={tab.value}
               onClick={() => setActiveFilter(tab.value)}
               whileTap={{ scale: 0.95 }}
-              className="relative px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+              className="relative font-semibold transition-colors"
               style={{
+                borderRadius: 12,
+                fontSize: 16,
+                paddingLeft: 14,
+                paddingRight: 14,
+                paddingTop: 10,
+                paddingBottom: 10,
                 backgroundColor: activeFilter === tab.value ? "var(--btn-primary-bg)" : "var(--card)",
                 color: activeFilter === tab.value ? "var(--btn-primary-text)" : "var(--text-3)",
               }}
@@ -324,8 +340,8 @@ export default function ListPage() {
               {activeFilter === tab.value && (
                 <motion.span
                   layoutId="list-filter-pill"
-                  className="absolute inset-0 rounded-full"
-                  style={{ backgroundColor: "var(--btn-primary-bg)", zIndex: -1 }}
+                  className="absolute inset-0"
+                  style={{ backgroundColor: "var(--btn-primary-bg)", borderRadius: 12, zIndex: -1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
               )}
@@ -349,15 +365,15 @@ export default function ListPage() {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               >
                 {/* 날짜 섹션 헤더 */}
-                <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="flex items-center gap-2" style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 8 }}>
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                     <circle cx="6" cy="6" r="5" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1.2" className="t-text"/>
                     <path d="M6 3.5V6L7.5 7.5" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1.2" strokeLinecap="round" className="t-text"/>
                   </svg>
-                  <span className="t-text-muted text-xs font-medium">
+                  <span className="t-text-muted font-medium" style={{ fontSize: 14 }}>
                     {formatDateLabel(dateKey)}
                   </span>
-                  <span className="t-text-faint text-xs ml-auto">
+                  <span className="t-text-faint ml-auto" style={{ fontSize: 14 }}>
                     {dateTasks.length}개
                   </span>
                 </div>
@@ -366,27 +382,39 @@ export default function ListPage() {
                 <motion.div
                   whileTap={{ scale: 0.975 }}
                   onClick={() => setSelectedDate(dateKey)}
-                  className="t-elevated rounded-3xl p-4 cursor-pointer"
-                  style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}
+                  className="pt-4 px-4 pb-6 cursor-pointer"
+                  style={{ borderRadius: 10, backgroundColor: "var(--card)", boxShadow: "0 2px 14px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06)" }}
                 >
-                  <h2 className="font-display font-bold t-text text-xl leading-tight mb-0.5">
+                  <h2 className="font-display font-bold t-text leading-tight" style={{ fontSize: 14, marginBottom: dateTasks.length > 1 ? 2 : 8 }}>
                     {dateTasks[0].content.length > 20
                       ? dateTasks[0].content.slice(0, 20) + "..."
                       : dateTasks[0].content}
                   </h2>
                   {dateTasks.length > 1 && (
-                    <p className="t-text-muted text-sm mb-3">
+                    <p className="t-text-muted mb-3" style={{ fontSize: 12 }}>
                       외 {dateTasks.length - 1}개 항목
                     </p>
                   )}
 
                   {/* 미니 포스트잇 프리뷰 */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  <div
+                    className="flex gap-[10px] overflow-x-auto scrollbar-rounded"
+                    style={{
+                      paddingTop: 4,
+                      paddingBottom: 12,
+                      paddingLeft: 10,
+                      paddingRight: 10,
+                      marginTop: -4,
+                      marginBottom: -12,
+                      marginLeft: 0,
+                      marginRight: 0,
+                    }}
+                  >
                     {dateTasks.slice(0, 6).map((task) => (
                       <MiniPostIt key={task.id} task={task} />
                     ))}
                     {dateTasks.length > 6 && (
-                      <div className="w-16 h-16 rounded-xl flex-shrink-0 t-card flex items-center justify-center">
+                      <div className="w-[90px] h-[90px] flex-shrink-0 t-card flex items-center justify-center" style={{ borderRadius: 8 }}>
                         <span className="t-text-faint text-xs">+{dateTasks.length - 6}</span>
                       </div>
                     )}
@@ -406,7 +434,6 @@ export default function ListPage() {
             members={members}
             groupId={groupId}
             dateLabel={formatDateLabel(selectedDate)}
-            filter={activeFilter}
             onClose={() => setSelectedDate(null)}
           />
         )}

@@ -7,18 +7,18 @@ import type { Task } from "@/types";
 import { supabase } from "@/lib/supabase";
 
 import ReactionPicker from "./ReactionPicker";
+import { Avatar } from "./Avatar";
 
+// yellow/purple/blue/green/red/gray — 전부 Tailwind -100 톤 (fill), stroke는 대응하는 -50 톤
 export const TODO_COLORS = [
-  "#FFF9C4", "#FFECB3", "#F8BBD9", "#E1BEE7",
-  "#B2EBF2", "#C8E6C9", "#FFCCBC",
+  "#FEF9C3", "#F3E8FF", "#FEF9C3", "#DBEAFE",
+  "#DCFCE7", "#FEE2E2", "#FEF9C3", "#F3F4F6",
 ];
 
 export const NOTE_COLORS = [
-  "#FFF9C4", "#F8BBD9", "#B2EBF2",
-  "#C8E6C9", "#E1BEE7", "#FFCCBC", "#FFECB3",
+  "#FEF9C3", "#FEE2E2", "#DBEAFE",
+  "#DCFCE7", "#F3E8FF", "#F3F4F6", "#FEF9C3",
 ];
-
-const COLOR_STROKE: Record<string, string> = {};
 
 // Stable references prevent framer-motion from restarting animations on re-render
 const SWAP_SCALE = [0.82, 1.06, 1];
@@ -30,9 +30,40 @@ export function getColor(id: string, colors: string[]): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+// D-Day 뱃지 색상: 레드=D-Day~D+(지남), 오렌지=D-1~D-3, 옐로우=D-4 이상
+const DDAY_COLORS = {
+  red: { bg: "#F87171", shadow: "rgba(248,113,113,0.4)" },
+  orange: { bg: "#FB923C", shadow: "rgba(251,146,60,0.4)" },
+  yellow: { bg: "#FACC15", shadow: "rgba(250,204,21,0.4)" },
+} as const;
+
+function getDDayInfo(task: Task): { label: string; bg: string; shadow: string } | null {
+  if (task.due_date) {
+    const today = new Date();
+    const due = new Date(task.due_date);
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    const diff = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const label = diff === 0 ? "D-Day" : diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+    const tier = diff <= 0 ? DDAY_COLORS.red : diff <= 3 ? DDAY_COLORS.orange : DDAY_COLORS.yellow;
+    return { label, ...tier };
+  }
+  if (task.created_at) {
+    const created = new Date(task.created_at);
+    const today = new Date();
+    created.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    if (days <= 0) return null;
+    return { label: `D+${days}`, ...DDAY_COLORS.red };
+  }
+  return null;
+}
+
 interface PostItCardProps {
   task: Task;
   style?: React.CSSProperties;
+  size?: number;
   memberAvatar?: string;
   isDragging?: boolean;
   isDropTarget?: boolean;
@@ -47,6 +78,7 @@ interface PostItCardProps {
 function PostItCard({
   task,
   style,
+  size = 180,
   memberAvatar,
   isDragging,
   isDropTarget,
@@ -61,9 +93,11 @@ function PostItCard({
   const [showPicker, setShowPicker] = useState(false);
   const isTodo = task.type === "todo";
   const isDone = task.status === "done";
+  const isSmall = size <= 140;
   const color = task.color ?? (isTodo
     ? getColor(task.id, TODO_COLORS)
     : getColor(task.id, NOTE_COLORS));
+  const dDayInfo = getDDayInfo(task);
 
   const reactions: Record<string, number> = task.reactions ?? {};
   const reactionEntries = Object.entries(reactions).filter(([, count]) => count > 0);
@@ -106,7 +140,6 @@ function PostItCard({
       className="relative"
       style={{
         width: 148,
-        paddingBottom: isTodo ? 0 : 20,
         zIndex: showPicker ? 100 : isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
         pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
         touchAction: "none",
@@ -126,7 +159,7 @@ function PostItCard({
             if (rect.left + pickerW / 2 > vw) setPickerAlign("right");
             else if (rect.right - pickerW / 2 < 0) setPickerAlign("left");
             else setPickerAlign("center");
-            setPickerPos({ x: rect.left + rect.width / 2, y: rect.top });
+            setPickerPos({ x: rect.left + rect.width / 2, y: rect.bottom });
           }
           setShowPicker(true);
           return;
@@ -172,8 +205,8 @@ function PostItCard({
               position: "fixed",
               left: pickerAlign === "right" ? "auto" : pickerAlign === "left" ? pickerPos.x - 8 : pickerPos.x,
               right: pickerAlign === "right" ? window.innerWidth - pickerPos.x - 8 : "auto",
-              top: pickerPos.y - 8,
-              transform: pickerAlign === "center" ? "translate(-50%, -100%)" : "translateY(-100%)",
+              top: pickerPos.y + 8,
+              transform: pickerAlign === "center" ? "translateX(-50%)" : undefined,
               zIndex: 9999,
             }}
           >
@@ -208,13 +241,13 @@ function PostItCard({
             : isDragging
             ? {
                 rotate: [task.rotation - DRAG_ROTATE_DELTA, task.rotation + DRAG_ROTATE_DELTA, task.rotation - DRAG_ROTATE_DELTA],
-                opacity: isDone ? 0.4 : 1,
+                opacity: 1,
                 scale: isLongPressTarget ? 1.06 : 1,
                 y: 0,
               }
             : isSwapping
-            ? { scale: SWAP_SCALE, rotate: task.rotation, opacity: isDone ? 0.4 : 1, y: 0 }
-            : { opacity: isDone ? 0.4 : 1, scale: 1, rotate: task.rotation, y: 0 }
+            ? { scale: SWAP_SCALE, rotate: task.rotation, opacity: 1, y: 0 }
+            : { opacity: 1, scale: 1, rotate: task.rotation, y: 0 }
         }
         exit={{ opacity: 0 }}
         transition={
@@ -226,38 +259,6 @@ function PostItCard({
         }
         className="relative"
       >
-        {/* 고정 핀 */}
-        {isPinned && (
-          <motion.div
-            initial={{ scale: 0, y: -8 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 600, damping: 18, delay: 0.08 }}
-            className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
-          >
-            <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
-              <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
-              <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
-              <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
-            </svg>
-          </motion.div>
-        )}
-
-        {/* 클립 (쪽지, 고정 아닐 때) */}
-        {!isTodo && !isPinned && (
-          <motion.div
-            initial={{ scale: 0, y: -6 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 600, damping: 18, delay: 0.08 }}
-            className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-            style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.25))" }}
-          >
-            <svg width="14" height="26" viewBox="0 0 14 26" fill="none">
-              <path d="M7 24C3.7 24 1 21.3 1 18V6.5C1 4 3 2 5.5 2C8 2 10 4 10 6.5V18C10 19.7 8.7 21 7 21C5.3 21 4 19.7 4 18V7" stroke="#90A4AE" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-            </svg>
-          </motion.div>
-        )}
-
         {/* 카드 본체 */}
         <div
           className="relative rounded-xl overflow-visible select-none"
@@ -354,12 +355,18 @@ function PostItCard({
                   onPointerDown={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
                   onTouchStart={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); handleToggleDone(); }}
-                  className={`relative flex-shrink-0 mt-0.5 -m-1.5 p-1.5`}
+                  className="relative flex-shrink-0"
                   style={{ touchAction: "none" }}
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isDone ? "border-black/40 bg-black/30" : "border-black/25 bg-transparent"
-                  }`}>
+                  <div
+                    className="rounded-full flex items-center justify-center transition-all"
+                    style={{
+                      width: isSmall ? 18 : 20,
+                      height: isSmall ? 18 : 20,
+                      backgroundColor: isDone ? "rgba(31,31,31,0.6)" : "rgba(255,255,255,0.3)",
+                      border: `1px solid ${isDone ? "#1C1C1C" : "#C2C2C2"}`,
+                    }}
+                  >
                     {isDone && (
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                         <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
@@ -367,31 +374,78 @@ function PostItCard({
                     )}
                   </div>
                 </button>
-                <motion.span
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.18 }}
-                  className="text-2xl leading-none -mt-1 -mr-1"
-                  style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.2))" }}
-                >
-                  {memberAvatar ?? "🐾"}
-                </motion.span>
+                {dDayInfo && (
+                  <motion.div
+                    initial={{ x: 10, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.18 }}
+                    className="flex-shrink-0 flex items-center justify-center"
+                    style={{
+                      backgroundColor: dDayInfo.bg,
+                      borderRadius: isSmall ? 6 : 8,
+                      width: isSmall ? 30 : 38,
+                      height: isSmall ? 18 : 22,
+                      boxShadow: `0 2px 6px ${dDayInfo.shadow}`,
+                      filter: isDone ? "brightness(0.8)" : "none",
+                    }}
+                  >
+                    <span
+                      className={isSmall ? "font-sans font-semibold" : "font-bold"}
+                      style={{ fontSize: isSmall ? 9 : 11, color: "#FEF2F2" }}
+                    >
+                      {dDayInfo.label}
+                    </span>
+                  </motion.div>
+                )}
               </div>
             )}
 
             <p
-              className="font-motto text-black/80 leading-snug flex-1"
+              className={isSmall ? "font-sans leading-snug flex-1" : "font-motto leading-snug flex-1"}
               style={{
+                color: "#000000",
                 textDecoration: isDone ? "line-through" : "none",
-                fontSize: task.content.length > 30 ? "12px" : "14px",
+                fontWeight: isSmall ? 400 : undefined,
+                fontSize: isSmall ? "10px" : task.content.length > 30 ? "12px" : "14px",
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: isTodo ? (isSmall ? 4 : 5) : (isSmall ? 7 : 6),
+                overflow: "hidden",
               }}
             >
               {task.content}
             </p>
 
-            {isTodo && task.assignee_name && (
-              <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
-            )}
+            <div className="flex items-center gap-1 mt-1">
+              <div
+                className="rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={{
+                  width: isSmall ? 10 : 20,
+                  height: isSmall ? 10 : 20,
+                  backgroundColor: "#FFFFFF",
+                  border: "1.5px solid #E5E5E5",
+                }}
+              >
+                <Avatar
+                  avatar={memberAvatar}
+                  fallback={
+                    <svg width={isSmall ? 7 : 11} height={isSmall ? 7 : 11} viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="5.5" r="2.5" stroke="black" strokeOpacity="0.28" strokeWidth="1.3" />
+                      <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="black" strokeOpacity="0.28" strokeWidth="1.3" strokeLinecap="round" />
+                    </svg>
+                  }
+                  size={isSmall ? 10 : 20}
+                />
+              </div>
+              {task.assignee_name && (
+                <p
+                  className="font-sans"
+                  style={{ fontSize: 10, fontWeight: isSmall ? 400 : undefined, color: isSmall ? "#9CA3AF" : "rgba(0,0,0,0.35)" }}
+                >
+                  {task.assignee_name}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -412,10 +466,10 @@ function PostItCard({
                   onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }}
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
                   style={{
-                    background: "rgba(30,30,35,0.85)",
-                    backdropFilter: "blur(8px)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                    border: "2px solid #ffffff",
+                    background: "rgba(107,114,128,0.2)",
+                    backdropFilter: "blur(7.3px)",
+                    WebkitBackdropFilter: "blur(7.3px)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                   }}
                 >
                   <span className="text-sm leading-none">{emoji}</span>
