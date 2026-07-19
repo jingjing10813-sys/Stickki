@@ -18,6 +18,8 @@ export const NOTE_COLORS = [
   "#C8E6C9", "#E1BEE7", "#FFCCBC", "#FFECB3",
 ];
 
+const COLOR_STROKE: Record<string, string> = {};
+
 // Stable references prevent framer-motion from restarting animations on re-render
 const SWAP_SCALE = [0.82, 1.06, 1];
 const DRAG_ROTATE_DELTA = 6;

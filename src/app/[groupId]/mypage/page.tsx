@@ -7,7 +7,10 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Member, Task } from "@/types";
 import { useTheme } from "@/lib/theme";
-import { Avatar } from "@/components/ui/Avatar";
+
+function isImageAvatar(avatar: string): boolean {
+  return avatar.startsWith("data:") || avatar.startsWith("http");
+}
 
 const PEN_COLORS = ["#000000", "#EF4444", "#3B82F6"];
 

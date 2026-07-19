@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 import type { Group, Task, Member } from "@/types";
 import { getColor, TODO_COLORS, NOTE_COLORS } from "@/components/ui/PostItCard";
 
@@ -227,7 +228,7 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }
                       ))}
                     </div>
                   )}
-                </motion.div>
+                </div>
               </motion.div>
             );
           })}
@@ -241,6 +242,7 @@ export default function ListPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { profile } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const initialFilter = (searchParams.get("filter") as FilterTab) ?? "all";
