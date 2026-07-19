@@ -84,7 +84,7 @@ export default function InviteCodePage() {
       </header>
 
       {/* 콘텐츠 */}
-      <div className="flex-1 px-5 pt-8 flex flex-col items-center">
+      <div className="flex-1 px-5 pt-4 flex flex-col items-center">
 
         {/* 그룹명 */}
         <p className="text-base font-semibold mb-5" style={{ color: "#1C1C1E" }}>
@@ -138,11 +138,11 @@ export default function InviteCodePage() {
         </div>
 
         {/* 구분선 */}
-        <div className="w-full" style={{ height: 1, backgroundColor: "#E4E4E7" }} />
+        <div className="self-stretch -mx-5" style={{ height: 12, backgroundColor: "#F4F4F5" }} />
 
         {/* 안내사항 */}
         <div className="w-full pt-6">
-          <p className="text-sm font-semibold mb-3" style={{ color: "#1C1C1E" }}>안내사항</p>
+          <p className="text-base font-semibold mb-3" style={{ color: "#1C1C1E" }}>안내사항</p>
           <div className="flex flex-col gap-1.5">
             <p className="text-sm" style={{ color: "#8E8E93" }}>
               함께 생활하는 사람에게 초대 코드를 공유해 주세요.

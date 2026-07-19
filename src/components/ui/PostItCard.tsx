@@ -258,24 +258,83 @@ function PostItCard({
 
         {/* 카드 본체 */}
         <div
-          className="rounded-xl overflow-visible select-none"
-          style={{
-            backgroundColor: color,
-            aspectRatio: isTodo ? "1/1" : "3/4",
-            boxShadow: isLongPressTarget
-              ? `0 0 0 2.5px #FF3B30, 0 6px 24px rgba(255,59,48,0.35), 0 8px 24px rgba(0,0,0,0.18)`
-              : `0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
-            filter: isDone ? "saturate(0.4) brightness(0.9)" : "none",
-            transition: "box-shadow 0.18s ease",
-          }}
+          className="relative rounded-xl overflow-visible select-none"
+          style={{ aspectRatio: "1/1" }}
         >
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-              opacity: 0.5,
-            }}
-          />
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            width="100%"
+            height="100%"
+            viewBox="0 0 180 180"
+            preserveAspectRatio="none"
+            style={{ overflow: "visible" }}
+          >
+            <defs>
+              <filter id={`postit-shadow-${task.id}`} x="-20%" y="-5%" width="140%" height="180%" filterUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                <feOffset dy="5" />
+                <feGaussianBlur stdDeviation="5.5" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0.1 0" />
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1" />
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                <feOffset dy="20" />
+                <feGaussianBlur stdDeviation="10" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0.09 0" />
+                <feBlend mode="normal" in2="effect1" result="effect2" />
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                <feOffset dy="45" />
+                <feGaussianBlur stdDeviation="13.5" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0.05 0" />
+                <feBlend mode="normal" in2="effect2" result="effect3" />
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                <feOffset dy="79" />
+                <feGaussianBlur stdDeviation="16" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0 0.588235 0 0 0 0.01 0" />
+                <feBlend mode="normal" in2="effect3" result="effect4" />
+                <feBlend mode="normal" in="SourceGraphic" in2="effect4" result="shape" />
+              </filter>
+              <pattern id={`postit-ruled-${task.id}`} patternUnits="userSpaceOnUse" width="180" height="21">
+                <rect y="20" width="180" height="1" fill="#CACACA" fillOpacity="0.3" />
+              </pattern>
+              <clipPath id={`postit-tape-clip-${task.id}`} transform="translate(-79.4 1.6)">
+                <rect x="123.404" y="6" width="18" height="42.0361" transform="rotate(60 123.404 6)" />
+              </clipPath>
+              <linearGradient id={`postit-pin-fill-${task.id}`} x1="111" y1="6" x2="111" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#F87171" />
+                <stop offset="1" stopColor="#991B1B" />
+              </linearGradient>
+              <linearGradient id={`postit-pin-stroke-${task.id}`} x1="111.5" y1="19" x2="111.5" y2="34" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#390C0C" />
+                <stop offset="1" stopColor="#9F2121" />
+              </linearGradient>
+            </defs>
+            <g filter={isLongPressTarget ? undefined : `url(#postit-shadow-${task.id})`}>
+              <rect width="180" height="180" rx="18" fill={color} />
+              <rect width="180" height="180" rx="18" fill={`url(#postit-ruled-${task.id})`} fillOpacity="0.5" />
+              {isDone && <rect width="180" height="180" rx="18" fill="black" fillOpacity="0.1" />}
+              <rect x="0.5" y="0.5" width="179" height="179" rx="17.5" fill="none" stroke={COLOR_STROKE[color] ?? "rgba(255,255,255,0.6)"} strokeWidth="1" />
+            </g>
+            {isLongPressTarget && (
+              <rect x="0.5" y="0.5" width="179" height="179" rx="17.5" fill="none" stroke="#FF3B30" strokeWidth="2.5" />
+            )}
+            {/* 등록한 메모 타입 구분 — 할일: 테이프, 쪽지: 핀 */}
+            {isTodo ? (
+              <g transform="translate(-20,-20)" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.15))" }}>
+                <foreignObject x="79.4" y="-1.6" width="60.6043" height="51.8066">
+                  <div
+                    style={{ backdropFilter: "blur(3.8px)", WebkitBackdropFilter: "blur(3.8px)", clipPath: `url(#postit-tape-clip-${task.id})`, height: "100%", width: "100%" }}
+                  />
+                </foreignObject>
+                <rect x="123.404" y="6" width="18" height="42.0361" transform="rotate(60 123.404 6)" fill="#D9D9D9" fillOpacity="0.4" />
+              </g>
+            ) : (
+              <g transform="translate(-20,-17)" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.3))" }}>
+                <circle cx="111" cy="14" r="8" fill={`url(#postit-pin-fill-${task.id})`} />
+                <path d="M111 19L111 29.8351" stroke={`url(#postit-pin-stroke-${task.id})`} strokeWidth="2" strokeLinecap="round" />
+              </g>
+            )}
+          </svg>
           <div
             className="absolute inset-0 rounded-xl pointer-events-none"
             style={{

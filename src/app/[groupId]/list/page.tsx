@@ -60,6 +60,13 @@ function MiniPostIt({ task }: { task: Task }) {
         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       }}
     >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: 8,
+          background: "repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.05) 20px, rgba(0,0,0,0.05) 21px)",
+        }}
+      />
       {task.type === "note" && (
         <div className="absolute top-0.5 left-1/2 -translate-x-1/2">
           <svg width="8" height="12" viewBox="0 0 20 32" fill="none">
@@ -149,43 +156,19 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, filter, onClose }
                 transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.05 }}
                 className="relative cursor-pointer"
                 style={{
-                  paddingTop: isPinned ? 20 : !isTodo ? 14 : 0,
-                  paddingBottom: reactionEntries.length > 0 ? 16 : 0,
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  backgroundColor: color,
+                  borderRadius: 18,
+                  padding: 14,
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
+                  filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
                 }}
-                onClick={() => router.push(`/${groupId}/${task.id}`)}
               >
-                {/* 핀·클립·카드·반응 모두 같은 rotating 컨테이너 안에 */}
-                <motion.div
-                  whileTap={{ scale: 0.94 }}
-                  className="relative"
-                  style={{ transform: `rotate(${tilt}deg)` }}
-                >
-                  {/* 고정 핀 */}
-                  {isPinned && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-                      style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }}>
-                      <svg width="20" height="32" viewBox="0 0 20 32" fill="none">
-                        <ellipse cx="10" cy="10" rx="10" ry="10" fill="#E53935"/>
-                        <ellipse cx="7" cy="7" rx="3" ry="3" fill="rgba(255,255,255,0.4)"/>
-                        <rect x="9" y="18" width="2" height="14" rx="1" fill="#B71C1C"/>
-                      </svg>
-                    </div>
-                  )}
-
-                  {/* 클립 */}
-                  {!isTodo && !isPinned && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-                      style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.25))" }}>
-                      <svg width="14" height="26" viewBox="0 0 14 26" fill="none">
-                        <path d="M7 24C3.7 24 1 21.3 1 18V6.5C1 4 3 2 5.5 2C8 2 10 4 10 6.5V18C10 19.7 8.7 21 7 21C5.3 21 4 19.7 4 18V7"
-                          stroke="#90A4AE" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-                      </svg>
-                    </div>
-                  )}
-
-                  {/* 카드 본체 */}
+                {/* 상단 행: 체크박스 + D+N 배지 */}
+                <div className="flex items-center justify-between">
                   <div
-                    className="rounded-xl overflow-visible select-none"
+                    className="flex items-center justify-center flex-shrink-0"
                     style={{
                       backgroundColor: color,
                       aspectRatio: isTodo ? "1/1" : "3/4",
@@ -317,7 +300,7 @@ export default function ListPage() {
           </svg>
         </motion.button>
         <h1 className="font-display font-bold t-text text-lg">
-          {group?.name ?? ""}의 흔적
+          {profile?.name ?? ""}의 흔적
         </h1>
         <div className="w-11" />
       </header>

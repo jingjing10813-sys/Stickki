@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -38,6 +38,7 @@ function computeGridPos(index: number, taskId: string) {
 export default function WhiteboardPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
 
   const [group, setGroup] = useState<Group | null>(null);
@@ -55,6 +56,7 @@ export default function WhiteboardPage() {
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const dragActiveRef = useRef(false);
   const dropTargetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tutorialShownRef = useRef(false);
 
   // 휴지통 드래그-삭제 상태
   const [longPressId, setLongPressId] = useState<string | null>(null);
@@ -216,10 +218,31 @@ export default function WhiteboardPage() {
   const [setupAvatar, setSetupAvatar] = useState(AVATARS[0]);
   const [setupLoading, setSetupLoading] = useState(false);
 
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+
   // 마지막 방 저장
   useEffect(() => {
     if (groupId) localStorage.setItem("last_group_id", groupId);
   }, [groupId]);
+
+  // 처음 방 입장 시 튜토리얼 표시
+  // ref를 써서 group 업데이트(realtime 멤버 추가 등)로 effect가 재실행돼도 한 번만 뜨도록 보장
+  // ?reset-tutorial=1 파라미터로 언제든 재실행 가능 (테스트용)
+  useEffect(() => {
+    if (!group || !groupId || tutorialShownRef.current) return;
+    const key = `tutorial_seen_${groupId}`;
+    const shouldReset = searchParams.get("reset-tutorial") === "1";
+    if (shouldReset) localStorage.removeItem(key);
+    if (!localStorage.getItem(key)) {
+      tutorialShownRef.current = true;
+      localStorage.setItem(key, "true");
+      setTutorialStep(0);
+    }
+  }, [group, groupId, searchParams]);
+
+  function advanceTutorial() {
+    setTutorialStep((s) => (s === null || s >= 2 ? null : s + 1));
+  }
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -528,9 +551,11 @@ export default function WhiteboardPage() {
         className="flex-1 relative"
         style={{ minHeight: 0, overflowX: viewAll ? "hidden" : "auto", overflowY: "hidden", padding: "0px 20px 40px 20px" }}
       >
-        {tasks.length === 0 ? (
+        {tasks.length === 0 || tutorialStep !== null ? (
           <div className="h-full flex items-center justify-center">
-            <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
+            {tasks.length === 0 && tutorialStep === null && (
+              <p className="t-text-faint text-sm">아직 포스트잇이 없어요</p>
+            )}
           </div>
         ) : (
           <div style={{ minWidth: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: viewAll ? "center" : "flex-start" }}>
@@ -682,6 +707,190 @@ export default function WhiteboardPage() {
           <AddTaskModal groupId={groupId} members={group.members ?? []} onClose={() => setShowModal(false)} newPosition={nextPosition ?? undefined} />
         )}
       </AnimatePresence>
+
+      {/* 첫 입장 튜토리얼 오버레이 */}
+      <AnimatePresence>
+        {tutorialStep !== null && (
+          <motion.div
+            key="tutorial-overlay"
+            className="fixed inset-0"
+            style={{ zIndex: 55 }}
+            onClick={advanceTutorial}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <AnimatePresence mode="wait">
+              {tutorialStep === 0 && (
+                <TutorialStep0 key="t0" userName={profile?.name ?? ""} />
+              )}
+              {tutorialStep === 1 && (
+                <TutorialStep1 key="t1" />
+              )}
+              {tutorialStep === 2 && (
+                <TutorialStep2 key="t2" />
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
+  );
+}
+
+// ── 튜토리얼 헬퍼 컴포넌트 ──
+
+function TutorialSpeechBubble({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <div style={{
+        background: "white",
+        border: "2.5px solid #1a1a1a",
+        borderRadius: 20,
+        padding: "12px 18px",
+        maxWidth: 230,
+        textAlign: "center",
+      }}>
+        <p style={{ fontSize: 15, lineHeight: 1.5, color: "#1a1a1a", whiteSpace: "pre-line", margin: 0 }}>
+          {children}
+        </p>
+      </div>
+      {/* 말꼬리 */}
+      <div style={{
+        position: "absolute", bottom: -14, left: "50%",
+        transform: "translateX(-50%)",
+        width: 0, height: 0,
+        borderLeft: "11px solid transparent",
+        borderRight: "11px solid transparent",
+        borderTop: "14px solid #1a1a1a",
+      }} />
+      <div style={{
+        position: "absolute", bottom: -10, left: "50%",
+        transform: "translateX(-50%)",
+        width: 0, height: 0,
+        borderLeft: "9px solid transparent",
+        borderRight: "9px solid transparent",
+        borderTop: "11px solid white",
+      }} />
+    </div>
+  );
+}
+
+function Character01SvgIcon({ style }: { style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 0 46 49" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
+      <path d="M4.46892 43.0045C23.0809 44.7226 36.7609 44.7226 36.8629 44.7226C39.5174 45.6495 40.9314 46.7125 42.0458 46.6039C43.1602 46.4953 44.0018 46.2845 43.855 45.3302C39.9338 39.0064 29.6488 32.3385 32.3493 30.6156C33.163 30.0965 36.328 30.0774 38.4334 26.768C40.4231 23.6403 42.5954 16.9838 40.2264 12.4556C38.156 8.498 35.6911 4.383 32.5753 3.03376C31.2029 2.43951 26.6748 1.44856 20.9347 2.38563C16.6551 3.08426 12.0401 4.15151 7.59868 9.84956C5.94146 11.9757 4.84579 14.1836 5.56084 16.1027C6.66617 19.0692 17.3732 25.2591 14.2926 28.8207C12.9992 30.316 10.5457 32.1247 6.36453 35.5494C3.55567 37.8501 -0.78111 42.5198 4.46892 43.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M19.1817 13.4395C19.1817 13.4801 19.1817 13.5207 19.1553 13.9244C19.129 14.328 19.0763 15.0936 19.244 15.7653C19.4116 16.437 19.8013 16.9917 20.2892 17.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M27.0493 12.9829V19.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function HatSvgIcon({ style }: { style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 0 46 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
+      <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" fill="#D9D9D9" fillOpacity="0.6"/>
+    </svg>
+  );
+}
+
+function TutorialStep0({ userName }: { userName: string }) {
+  return (
+    <motion.div
+      className="fixed inset-0 flex items-center justify-center"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32 }}
+      style={{ paddingTop: 80, paddingBottom: 140 }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+        <TutorialSpeechBubble>
+          {`하이 ${userName}\n우리집이 만들어졌어\n집을 한번 둘러봐 ~`}
+        </TutorialSpeechBubble>
+        {/* 캐릭터01 + 모자 */}
+        <div style={{ position: "relative", width: 80, height: 90 }}>
+          {/* 모자 — 캐릭터 왼쪽 위에 비스듬하게 */}
+          <div style={{
+            position: "absolute", top: -22, left: -10,
+            transform: "rotate(-28deg)",
+          }}>
+            <HatSvgIcon style={{ width: 50, height: 38 }} />
+          </div>
+          <Character01SvgIcon style={{ width: 80, height: 85 }} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function TutorialStep1() {
+  return (
+    <motion.div
+      className="fixed inset-0"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32 }}
+    >
+      {/* 말풍선 — 캐릭터02 자리 (나중에 추가 예정) */}
+      <div style={{
+        position: "absolute", top: "42%", left: "50%",
+        transform: "translate(-50%, -50%)",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 24,
+      }}>
+        <TutorialSpeechBubble>오 내 모자!</TutorialSpeechBubble>
+        {/* TODO: 캐릭터02.svg 첨부 후 여기에 추가 */}
+      </div>
+      {/* 모자 — '+' 버튼 왼쪽 상단 */}
+      <div style={{
+        position: "fixed", bottom: 90, right: 64,
+        transform: "rotate(22deg)",
+      }}>
+        <HatSvgIcon style={{ width: 50, height: 38 }} />
+      </div>
+    </motion.div>
+  );
+}
+
+function TutorialStep2() {
+  const footsteps = [
+    { x: 190, y: 492, angle: -40 },
+    { x: 208, y: 516, angle: -36 },
+    { x: 221, y: 544, angle: -40 },
+    { x: 238, y: 568, angle: -35 },
+    { x: 251, y: 596, angle: -38 },
+    { x: 265, y: 622, angle: -36 },
+    { x: 278, y: 651, angle: -34 },
+    { x: 291, y: 678, angle: -37 },
+    { x: 303, y: 706, angle: -34 },
+  ];
+
+  return (
+    <motion.div
+      className="fixed inset-0"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {footsteps.map((fp, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: Math.max(0.2, 0.75 - i * 0.06), scale: 1 }}
+          transition={{ delay: i * 0.1, type: "spring", stiffness: 400, damping: 22 }}
+          style={{
+            position: "absolute",
+            left: fp.x,
+            top: fp.y,
+            transform: `rotate(${fp.angle}deg)`,
+            width: 14,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: "#27272A",
+          }}
+        />
+      ))}
+    </motion.div>
   );
 }
