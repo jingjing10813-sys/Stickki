@@ -149,96 +149,53 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, onClose }: GridMo
             const tilt = (i % 2 === 0 ? 1 : -1) * (2 + (i % 3));
 
             return (
-              <div key={task.id} style={{ padding: 12 }}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, rotate: tilt }}
-                animate={{ opacity: 1, scale: 1, rotate: tilt }}
-                whileTap={{ scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
-                onClick={() => router.push(`/${groupId}/${task.id}`)}
-                className="relative cursor-pointer flex flex-col"
-                style={{
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  backgroundColor: color,
-                  borderRadius: 18,
-                  padding: 14,
-                  boxShadow: "0 6px 20px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
-                  filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
-                }}
-              >
-                {/* 상단 행: 체크박스 + D+N 배지 */}
-                <div className="flex items-center justify-between">
-                  <div
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: 24, height: 24, borderRadius: 12,
-                      border: `2px solid ${isDone ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)"}`,
-                      backgroundColor: isDone ? "rgba(0,0,0,0.22)" : "transparent",
-                    }}
-                  >
-                    {isDone && (
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
+              <div key={task.id} style={{ padding: 6 }}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, rotate: tilt }}
+                  animate={{ opacity: 1, scale: 1, rotate: tilt }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
+                  onClick={() => router.push(`/${groupId}/${task.id}`)}
+                  className="relative cursor-pointer flex flex-col"
+                  style={{
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    backgroundColor: color,
+                    borderRadius: 18,
+                    padding: 14,
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
+                    filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className="flex items-center justify-center flex-shrink-0"
+                      style={{
+                        width: 22, height: 22, borderRadius: 11,
+                        border: `2px solid ${isDone ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)"}`,
+                        backgroundColor: isDone ? "rgba(0,0,0,0.22)" : "transparent",
+                      }}
+                    >
+                      {isDone && (
+                        <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {d > 0 && (
+                      <span className="text-black/40 text-[10px] font-sans">D+{d}</span>
                     )}
                   </div>
-
-                  {d > 0 && (
-                    <div
-                      className="flex items-center justify-center"
-                      style={{
-                        background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-                        opacity: 0.5,
-                      }}
-                    />
-                    <div className="relative p-3 h-full flex flex-col">
-                      {isTodo && (
-                        <div className="flex items-start justify-between mb-2">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                            isDone ? "border-black/35 bg-black/25" : "border-black/22"
-                          }`}>
-                            {isDone && (
-                              <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
-                              </svg>
-                            )}
-                          </div>
-                          <span className="text-xl leading-none -mt-1 -mr-1"
-                            style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.18))" }}>
-                            {member?.avatar ?? "🐾"}
-                          </span>
-                        </div>
-                      )}
-                      <p
-                        className="font-motto text-black/80 leading-snug flex-1"
-                        style={{
-                          textDecoration: isDone ? "line-through" : "none",
-                          fontSize: task.content.length > 30 ? "12px" : "14px",
-                        }}
-                      >
-                        {task.content}
-                      </p>
-                      {isTodo && task.assignee_name && (
-                        <p className="text-black/35 text-[10px] mt-1 font-sans">{task.assignee_name}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 반응 뱃지 — 카드와 같은 rotating 컨테이너 안에서 absolute */}
-                  {reactionEntries.length > 0 && (
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                      {reactionEntries.map(([emoji, count]) => (
-                        <div key={emoji} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
-                          style={{ background: "rgba(28,28,32,0.88)", border: "1.5px solid white", boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }}>
-                          <span className="text-sm leading-none">{emoji}</span>
-                          {count > 1 && <span className="text-white/60 text-[10px]">{count}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <p
+                    className="font-motto text-black/80 leading-snug flex-1"
+                    style={{
+                      textDecoration: isDone ? "line-through" : "none",
+                      fontSize: task.content.length > 30 ? "12px" : "14px",
+                    }}
+                  >
+                    {task.content}
+                  </p>
                 </motion.div>
-              </motion.div>
               </div>
             );
           })}
