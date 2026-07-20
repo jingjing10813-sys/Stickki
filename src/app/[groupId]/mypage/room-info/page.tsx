@@ -94,7 +94,7 @@ export default function RoomInfoPage() {
 
         {/* 가훈 섹션 */}
         <section>
-          <p className="text-sm font-semibold mb-2" style={{ color: "#1C1C1E" }}>
+          <p className="text-base font-semibold mb-2" style={{ color: "#1C1C1E" }}>
             {group.name} 가훈
           </p>
           <div
@@ -134,7 +134,7 @@ export default function RoomInfoPage() {
         {/* 구성원 섹션 */}
         <section>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold" style={{ color: "#1C1C1E" }}>
+            <p className="text-base font-semibold" style={{ color: "#1C1C1E" }}>
               {group.name} 구성원
             </p>
             <span className="text-sm" style={{ color: "#8E8E93" }}>{memberCount}명</span>

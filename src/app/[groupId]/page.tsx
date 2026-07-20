@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -82,7 +82,6 @@ export default function WhiteboardPage() {
   const [editingMotto, setEditingMotto] = useState(false);
   const [mottoValue, setMottoValue] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ w: 360, h: 600 });
   const [nextPosition, setNextPosition] = useState<{ x: number; y: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -750,57 +749,36 @@ export default function WhiteboardPage() {
 
 function TutorialSpeechBubble({ children }: { children: ReactNode }) {
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    <div style={{ position: "relative", width: 190, height: 135 }}>
+      <svg width="190" height="135" viewBox="0 0 128 91" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M43.6494 76.7297C44.3711 78.68 46.5484 84.4308 48.6191 87.8382C50.9552 91.6824 55.3777 79.4368 57.905 75.6598C63.5587 67.2104 86.9702 71.722 99.1269 70.3298C112.003 68.8551 116.712 65.2004 121.515 60.3117C127.934 53.778 126.493 42.0566 122.122 22.2614C120.932 16.8704 118.634 14.32 116.302 11.8049C111.492 6.61671 101.867 4.73017 87.3845 2.80608C78.2217 1.58874 65.1582 1.98164 56.3571 2.48503C35.4516 3.68074 23.8227 13.6367 14.7298 21.6925C9.26191 26.5366 7.09372 32.1612 5.01889 38.5071C1.06593 50.5972 1.28664 60.5972 3.99618 68.2967C5.57113 72.7722 10.4241 74.508 18.9286 76.8968C26.0138 78.1314 36.5411 78.456 41.952 77.0837C42.8133 76.5017 43.6618 75.7825 44.7503 75.0414"
+          fill="white"
+          stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+        />
+      </svg>
       <div style={{
-        background: "white",
-        border: "2.5px solid #1a1a1a",
-        borderRadius: 20,
-        padding: "12px 18px",
-        maxWidth: 230,
+        position: "absolute",
+        top: "2%", left: 0, right: 0,
+        bottom: "15%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         textAlign: "center",
+        fontFamily: "var(--font-ongeulip)",
+        fontSize: 15,
+        color: "#1a1a1a",
+        lineHeight: 1.6,
+        whiteSpace: "pre-line",
+        padding: "0 22px",
       }}>
-        <p style={{ fontSize: 15, lineHeight: 1.5, color: "#1a1a1a", whiteSpace: "pre-line", margin: 0 }}>
-          {children}
-        </p>
+        {children}
       </div>
-      {/* 말꼬리 */}
-      <div style={{
-        position: "absolute", bottom: -14, left: "50%",
-        transform: "translateX(-50%)",
-        width: 0, height: 0,
-        borderLeft: "11px solid transparent",
-        borderRight: "11px solid transparent",
-        borderTop: "14px solid #1a1a1a",
-      }} />
-      <div style={{
-        position: "absolute", bottom: -10, left: "50%",
-        transform: "translateX(-50%)",
-        width: 0, height: 0,
-        borderLeft: "9px solid transparent",
-        borderRight: "9px solid transparent",
-        borderTop: "11px solid white",
-      }} />
     </div>
   );
 }
 
-function Character01SvgIcon({ style }: { style?: CSSProperties }) {
-  return (
-    <svg viewBox="0 0 46 49" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
-      <path d="M4.46892 43.0045C23.0809 44.7226 36.7609 44.7226 36.8629 44.7226C39.5174 45.6495 40.9314 46.7125 42.0458 46.6039C43.1602 46.4953 44.0018 46.2845 43.855 45.3302C39.9338 39.0064 29.6488 32.3385 32.3493 30.6156C33.163 30.0965 36.328 30.0774 38.4334 26.768C40.4231 23.6403 42.5954 16.9838 40.2264 12.4556C38.156 8.498 35.6911 4.383 32.5753 3.03376C31.2029 2.43951 26.6748 1.44856 20.9347 2.38563C16.6551 3.08426 12.0401 4.15151 7.59868 9.84956C5.94146 11.9757 4.84579 14.1836 5.56084 16.1027C6.66617 19.0692 17.3732 25.2591 14.2926 28.8207C12.9992 30.316 10.5457 32.1247 6.36453 35.5494C3.55567 37.8501 -0.78111 42.5198 4.46892 43.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M19.1817 13.4395C19.1817 13.4801 19.1817 13.5207 19.1553 13.9244C19.129 14.328 19.0763 15.0936 19.244 15.7653C19.4116 16.437 19.8013 16.9917 20.2892 17.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M27.0493 12.9829V19.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
 
-function HatSvgIcon({ style }: { style?: CSSProperties }) {
-  return (
-    <svg viewBox="0 0 46 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
-      <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" fill="#D9D9D9" fillOpacity="0.6"/>
-    </svg>
-  );
-}
 
 function TutorialStep0({ userName }: { userName: string }) {
   return (
@@ -812,21 +790,17 @@ function TutorialStep0({ userName }: { userName: string }) {
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
       style={{ paddingTop: 80, paddingBottom: 140 }}
     >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
         <TutorialSpeechBubble>
           {`하이 ${userName}\n우리집이 만들어졌어\n집을 한번 둘러봐 ~`}
         </TutorialSpeechBubble>
-        {/* 캐릭터01 + 모자 */}
-        <div style={{ position: "relative", width: 80, height: 90 }}>
-          {/* 모자 — 캐릭터 왼쪽 위에 비스듬하게 */}
-          <div style={{
-            position: "absolute", top: -22, left: -10,
-            transform: "rotate(-28deg)",
-          }}>
-            <HatSvgIcon style={{ width: 50, height: 38 }} />
-          </div>
-          <Character01SvgIcon style={{ width: 80, height: 85 }} />
-        </div>
+        {/* 포스트잇 캐릭터 */}
+        <svg width="72" height="81" viewBox="0 0 60 67" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18.4673 61.0045C37.0793 62.7226 50.7593 62.7226 50.8613 62.7226C53.5158 63.6495 54.9298 64.7125 56.0442 64.6039C57.1586 64.4953 58.0002 64.2845 57.8534 63.3302C53.9322 57.0064 43.6472 50.3385 46.3477 48.6156C47.1614 48.0965 50.3264 48.0774 52.4318 44.768C54.4215 41.6403 56.5938 34.9838 54.2248 30.4556C52.1544 26.498 49.6895 22.383 46.5737 21.0338C45.2014 20.4395 40.6732 19.4486 34.9331 20.3856C30.6535 21.0843 26.0385 22.1515 21.5971 27.8496C19.9399 29.9757 18.8442 32.1836 19.5593 34.1027C20.6646 37.0692 31.3716 43.2591 28.291 46.8207C26.9976 48.316 24.5441 50.1247 20.3629 53.5494C17.5541 55.8501 13.2173 60.5198 18.4673 61.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M33.1801 31.4395C33.1801 31.4801 33.1801 31.5207 33.1537 31.9244C33.1274 32.328 33.0747 33.0936 33.2424 33.7653C33.4101 34.437 33.7997 34.9917 34.2876 35.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M41.0477 30.9829V37.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" fill="#D9D9D9" fillOpacity="0.4"/>
+        </svg>
       </div>
     </motion.div>
   );
@@ -841,37 +815,71 @@ function TutorialStep1() {
       exit={{ opacity: 0, y: -10 }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
     >
-      {/* 말풍선 — 캐릭터02 자리 (나중에 추가 예정) */}
-      <div style={{
-        position: "absolute", top: "42%", left: "50%",
-        transform: "translate(-50%, -50%)",
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 24,
-      }}>
-        <TutorialSpeechBubble>오 내 모자!</TutorialSpeechBubble>
-        {/* TODO: 캐릭터02.svg 첨부 후 여기에 추가 */}
+      {/* 말풍선02 + 캐릭터02 — 화면 중앙 */}
+      <div className="fixed inset-0 flex items-center justify-center" style={{ paddingTop: 80, paddingBottom: 140 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          {/* 말풍선02 */}
+          <div style={{ position: "relative", width: 160, height: 120, marginLeft: 40 }}>
+            <svg width="160" height="120" viewBox="0 0 108 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M39.4973 63.6472C39.4973 63.8086 39.4429 68.5602 39.3738 75.8213C39.3491 78.4139 39.3859 78.7894 41.2544 77.0314C47.0427 71.5857 51.4451 66.0959 52.8027 63.9775C53.3606 63.1068 53.6893 62.6745 54.2555 62.4522C55.5456 61.9457 58.6639 62.6185 63.2907 63.2597C68.2261 63.9437 74.2548 63.5231 80.834 62.4575C84.0891 61.9302 86.9851 60.4819 89.8048 58.584C92.6246 56.6862 95.2318 54.1403 97.2804 51.7022C101.03 47.2397 102.853 43.1115 104.144 38.344C106.244 30.5893 105.78 24.1228 104.802 20.9683C102.2 12.578 95.6674 10.7978 92.2616 9.13827C90.1472 8.10803 87.0594 7.10982 79.2437 5.85177C71.4279 4.59373 58.9294 3.21192 50.0194 2.5356C41.1093 1.85927 36.1664 1.9303 32.3386 2.16959C25.9279 2.57036 21.656 3.84495 18.5231 5.20122C15.6088 6.46286 12.1174 9.93599 8.24523 13.7572C4.59008 17.3643 3.44262 21.309 2.28344 27.6485C1.86386 29.9431 1.93414 33.0236 2.33635 36.4407C3.18184 43.6238 5.36288 48.9324 6.90416 51.8768C8.30482 54.5526 10.9874 56.622 13.6387 58.7345C18.5632 62.6582 24.4977 63.4831 27.6727 64.3863C29.444 64.7855 32.9608 64.9961 37.0263 64.9822C38.5324 64.9416 38.9078 64.8327 39.5378 64.6381"
+                fill="white"
+                stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+              />
+            </svg>
+            <div style={{
+              position: "absolute",
+              top: "3%", left: 0, right: 0,
+              bottom: "21%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              fontFamily: "var(--font-ongeulip)",
+              fontSize: 15,
+              color: "#1a1a1a",
+              lineHeight: 1.6,
+              whiteSpace: "pre-line",
+              padding: "0 22px",
+            }}>
+              오 내 모자!
+            </div>
+          </div>
+          {/* 캐릭터02 */}
+          <svg width="55" height="63" viewBox="0 0 48 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.11963 52.0322C22.6199 43.0322 36.8794 47.755 36.9813 47.755C39.6358 48.6819 41.0499 49.7449 42.1643 49.6363C43.2787 49.5277 44.1203 49.3168 43.9735 48.3626C40.0523 42.0388 29.7672 35.3708 32.4678 33.648C33.2815 33.1289 36.4465 33.1098 38.5519 29.8004C40.5416 26.6727 47.0015 15.9824 44.6325 11.4542C42.562 7.4966 40.0972 3.38159 36.9813 2.03235C35.609 1.43811 25.4061 9.27535 21.0532 5.41802C14.4111 -0.467773 12.1585 7.1839 7.71717 12.882C6.05995 15.0081 4.96428 17.216 5.67933 19.1351C6.78466 22.1016 17.4917 28.2915 14.4111 31.8531C13.1177 33.3484 10.6641 35.1571 6.48302 38.5818C3.67416 40.8825 -0.62146 54.3387 4.11963 52.0322Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M18.2998 16.4717C18.2998 16.5123 18.2998 16.5529 18.2735 16.9566C18.2471 17.3603 18.1944 18.1258 18.3621 18.7975C18.5298 19.4692 18.9195 20.0239 19.4074 20.7761" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M26.1675 16.0151V22.5865" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
       </div>
-      {/* 모자 — '+' 버튼 왼쪽 상단 */}
+      {/* 모자 — FAB 우상단 꼭짓점 기준, transform-origin 좌상단으로 62.06도 회전 */}
       <div style={{
-        position: "fixed", bottom: 90, right: 64,
-        transform: "rotate(22deg)",
+        position: "fixed", bottom: 51, right: 24.86,
+        width: 21.6, height: 50.4,
+        transform: "rotate(62.06deg)",
+        transformOrigin: "0 0",
       }}>
-        <HatSvgIcon style={{ width: 50, height: 38 }} />
+        <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="18" height="42" fill="#D9D9D9" fillOpacity="0.4"/>
+        </svg>
       </div>
     </motion.div>
   );
 }
 
 function TutorialStep2() {
-  const footsteps = [
-    { x: 190, y: 492, angle: -40 },
-    { x: 208, y: 516, angle: -36 },
-    { x: 221, y: 544, angle: -40 },
-    { x: 238, y: 568, angle: -35 },
-    { x: 251, y: 596, angle: -38 },
-    { x: 265, y: 622, angle: -36 },
-    { x: 278, y: 651, angle: -34 },
-    { x: 291, y: 678, angle: -37 },
-    { x: 303, y: 706, angle: -34 },
+  // 발자국 SVG 세그먼트 (위→아래 순서로 정렬)
+  const segments = [
+    "M3.77015 2.00049L2.00049 5.48982",
+    "M22.4898 22.0007L25.8433 35.1997",
+    "M32.7819 72.3905L41.5513 82.8096",
+    "M56.5141 102.788L55.2767 104.972",
+    "M66.4505 133L65.0005 139.371",
+    "M57.0004 148.376L60.0513 154.153",
+    "M82.6645 168.81L83.6685 182.391",
+    "M82.953 202.234L86.2381 207.19",
+    "M96.7214 214L95.484 216.184",
   ];
 
   return (
@@ -881,24 +889,33 @@ function TutorialStep2() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {footsteps.map((fp, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: Math.max(0.2, 0.75 - i * 0.06), scale: 1 }}
-          transition={{ delay: i * 0.1, type: "spring", stiffness: 400, damping: 22 }}
-          style={{
-            position: "absolute",
-            left: fp.x,
-            top: fp.y,
-            transform: `rotate(${fp.angle}deg)`,
-            width: 14,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#27272A",
-          }}
-        />
-      ))}
+      <svg
+        width="99"
+        height="219"
+        viewBox="0 0 99 219"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ position: "absolute", left: 260, top: 592 }}
+      >
+        {segments.map((d, i) => {
+          const t = i / (segments.length - 1);
+          const v = Math.round(196 * (1 - t));
+          const color = `rgb(${v},${v},${v})`;
+          return (
+            <motion.path
+              key={i}
+              d={d}
+              stroke={color}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.1, duration: 0.25, ease: "easeOut" }}
+            />
+          );
+        })}
+      </svg>
     </motion.div>
   );
 }
