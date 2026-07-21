@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import { StickkiLogo, StickkiWordmarkWithTape } from "@/components/ui/StickkiLogos";
+import { StickkiWordmarkWithTape, StickkiCharacterNo } from "@/components/ui/StickkiLogos";
+import PostItCard from "@/components/ui/PostItCard";
+import type { Task } from "@/types";
 
 export default function LoginPage() {
   const [showSplash, setShowSplash] = useState(true);
@@ -44,8 +46,19 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen dot-pattern flex flex-col px-6 relative overflow-hidden">
 
+      {/* 캐릭터 — 로고 기준 살짝 하단, 화면 오른쪽 끝에 딱 붙여서 걸침 */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{ right: -13, top: "calc(19vh - 20px + 85px)" }}
+        initial={{ opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.15 }}
+      >
+        <StickkiCharacterNo style={{ width: 47, height: "auto" }} />
+      </motion.div>
+
       {/* 로고 영역 */}
-      <div style={{ paddingTop: "calc(19vh - 20px)", display: "flex", justifyContent: "center" }}>
+      <div style={{ paddingTop: "calc(19vh - 20px)", display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,6 +66,15 @@ export default function LoginPage() {
         >
           <StickkiWordmarkWithTape style={{ width: 175, height: 59, color: "#1a1a1a" }} />
         </motion.div>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.05 }}
+          className="font-sans t-text-muted"
+          style={{ fontSize: 14, marginTop: 6 }}
+        >
+          우리사이, 더 끈끈하게
+        </motion.p>
       </div>
 
       {/* 스페이서 */}
@@ -70,6 +92,19 @@ export default function LoginPage() {
           지금 가입하고 끈끈한 공동생활 시작하기
         </p>
 
+        {/* 애플 */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleAppleLogin}
+          className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm"
+          style={{ backgroundColor: "#000", color: "#fff" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M21.2806 18.424C20.9328 19.2275 20.5211 19.9672 20.0441 20.6473C19.3938 21.5743 18.8614 22.216 18.4511 22.5724C17.8151 23.1573 17.1336 23.4569 16.4039 23.4739C15.88 23.4739 15.2483 23.3248 14.5129 23.0224C13.775 22.7214 13.097 22.5724 12.477 22.5724C11.8268 22.5724 11.1294 22.7214 10.3835 23.0224C9.63644 23.3248 9.03463 23.4824 8.5745 23.498C7.87472 23.5278 7.17722 23.2198 6.48099 22.5724C6.03662 22.1848 5.48081 21.5204 4.81496 20.5791C4.10057 19.574 3.51323 18.4084 3.0531 17.0795C2.56032 15.6442 2.31329 14.2543 2.31329 12.9087C2.31329 11.3673 2.64636 10.0379 3.31348 8.92386C3.83778 8.02902 4.53528 7.32314 5.40826 6.80495C6.28124 6.28675 7.2245 6.02269 8.2403 6.00579C8.79611 6.00579 9.52499 6.17772 10.4308 6.51561C11.334 6.85464 11.9139 7.02656 12.1682 7.02656C12.3583 7.02656 13.0026 6.82553 14.0948 6.42475C15.1276 6.05307 15.9993 5.89917 16.7134 5.95979C18.6485 6.11596 20.1023 6.87877 21.0691 8.25305C19.3385 9.30165 18.4824 10.7703 18.4994 12.6544C18.515 14.122 19.0474 15.3432 20.0937 16.3129C20.5679 16.7629 21.0975 17.1108 21.6867 17.3578C21.5589 17.7283 21.424 18.0833 21.2806 18.424V18.424ZM16.8426 0.960146C16.8426 2.11041 16.4224 3.1844 15.5847 4.17848C14.5739 5.36025 13.3513 6.04313 12.0254 5.93537C12.0085 5.79738 11.9987 5.65214 11.9987 5.49952C11.9987 4.39527 12.4794 3.21351 13.3331 2.24725C13.7593 1.75802 14.3013 1.35123 14.9586 1.02673C15.6146 0.707068 16.235 0.530288 16.8185 0.500015C16.8355 0.653787 16.8426 0.807569 16.8426 0.960131V0.960146Z" fill="white"/>
+          </svg>
+          애플로 시작하기
+        </motion.button>
+
         {/* 카카오 */}
         <motion.button
           whileTap={{ scale: 0.97 }}
@@ -78,7 +113,7 @@ export default function LoginPage() {
           style={{ backgroundColor: "#FEE500", color: "rgba(0,0,0,0.85)" }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path fillRule="evenodd" clipRule="evenodd" d="M9.00002 0.600006C4.02917 0.600006 0 3.71296 0 7.55229C0 9.94003 1.5584 12.045 3.93152 13.297L2.93303 16.9445C2.84481 17.2668 3.21341 17.5237 3.49646 17.3369L7.87334 14.4482C8.2427 14.4839 8.61808 14.5047 9.00002 14.5047C13.9705 14.5047 17.9999 11.3918 17.9999 7.55229C17.9999 3.71296 13.9705 0.600006 9.00002 0.600006" fill="rgba(0,0,0,0.85)"/>
+            <path d="M9 2.5C4.85 2.5 1.5 5.15 1.5 8.42C1.5 10.53 2.9 12.38 5 13.44C4.85 14.02 4.42 15.6 4.33 15.97C4.22 16.42 4.5 16.42 4.68 16.3C4.83 16.2 6.9 14.8 7.8 14.2C8.19 14.26 8.59 14.29 9 14.29C13.15 14.29 16.5 11.64 16.5 8.42C16.5 5.15 13.15 2.5 9 2.5Z" fill="rgba(0,0,0,0.85)"/>
           </svg>
           카카오로 시작하기
         </motion.button>
@@ -94,19 +129,6 @@ export default function LoginPage() {
             <path d="M10.8491 8.56267L4.91687 0H0V16H5.15088V7.436L11.0831 16H16V0H10.8491V8.56267Z" fill="white"/>
           </svg>
           네이버로 시작하기
-        </motion.button>
-
-        {/* 애플 */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleAppleLogin}
-          className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm"
-          style={{ backgroundColor: "#000", color: "#fff" }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M21.2806 18.424C20.9328 19.2275 20.5211 19.9672 20.0441 20.6473C19.3938 21.5743 18.8614 22.216 18.4511 22.5724C17.8151 23.1573 17.1336 23.4569 16.4039 23.4739C15.88 23.4739 15.2483 23.3248 14.5129 23.0224C13.775 22.7214 13.097 22.5724 12.477 22.5724C11.8268 22.5724 11.1294 22.7214 10.3835 23.0224C9.63644 23.3248 9.03463 23.4824 8.5745 23.498C7.87472 23.5278 7.17722 23.2198 6.48099 22.5724C6.03662 22.1848 5.48081 21.5204 4.81496 20.5791C4.10057 19.574 3.51323 18.4084 3.0531 17.0795C2.56032 15.6442 2.31329 14.2543 2.31329 12.9087C2.31329 11.3673 2.64636 10.0379 3.31348 8.92386C3.83778 8.02902 4.53528 7.32314 5.40826 6.80495C6.28124 6.28675 7.2245 6.02269 8.2403 6.00579C8.79611 6.00579 9.52499 6.17772 10.4308 6.51561C11.334 6.85464 11.9139 7.02656 12.1682 7.02656C12.3583 7.02656 13.0026 6.82553 14.0948 6.42475C15.1276 6.05307 15.9993 5.89917 16.7134 5.95979C18.6485 6.11596 20.1023 6.87877 21.0691 8.25305C19.3385 9.30165 18.4824 10.7703 18.4994 12.6544C18.515 14.122 19.0474 15.3432 20.0937 16.3129C20.5679 16.7629 21.0975 17.1108 21.6867 17.3578C21.5589 17.7283 21.424 18.0833 21.2806 18.424V18.424ZM16.8426 0.960146C16.8426 2.11041 16.4224 3.1844 15.5847 4.17848C14.5739 5.36025 13.3513 6.04313 12.0254 5.93537C12.0085 5.79738 11.9987 5.65214 11.9987 5.49952C11.9987 4.39527 12.4794 3.21351 13.3331 2.24725C13.7593 1.75802 14.3013 1.35123 14.9586 1.02673C15.6146 0.707068 16.235 0.530288 16.8185 0.500015C16.8355 0.653787 16.8426 0.807569 16.8426 0.960131V0.960146Z" fill="white"/>
-          </svg>
-          애플로 시작하기
         </motion.button>
 
         {/* 구글 */}
@@ -140,39 +162,93 @@ export default function LoginPage() {
   );
 }
 
-const NOTE_SIZE = 191.228;
-const NOTE_RADIUS = 19.1228;
-const NOTE_LEFT_CENTER = 187.5 - NOTE_SIZE / 2; // 375px 폭 기준 가로 중앙
-const NOTE_TOP_CENTER = 406 - NOTE_SIZE / 2; // 812px 높이 기준 세로 중앙
-const NOTE_SHADOW =
-  "0 5px 12px rgba(150,150,150,0.1), 0 21px 21px rgba(150,150,150,0.09), 0 48px 29px rgba(150,150,150,0.05), 0 84px 34px rgba(150,150,150,0.01)";
-const NOTE_COLORS = {
-  pink: { fill: "#FCE7F3", border: "#FDF2F8" },
-  blue: { fill: "#DBEAFE", border: "#EFF6FF" },
-  yellow: { fill: "#FEF9C3", border: "#FEFCE8" },
-} as const;
+const CARD_SIZE = 180;
+const CARD_LEFT_CENTER = 187.5 - CARD_SIZE / 2; // 375px 폭 기준 가로 중앙
+const CARD_TOP_CENTER = 406 - CARD_SIZE / 2; // 812px 높이 기준 세로 중앙
 
-function noteStyle(color: keyof typeof NOTE_COLORS): React.CSSProperties {
-  const c = NOTE_COLORS[color];
+// 스플래시 카드 프로필에 쓰는 작은 스티끼 캐릭터 아바타 (CharacterGhost 얼굴만 축약)
+const STICKKI_CHARACTER_AVATAR = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 95 69" fill="none">' +
+    '<path d="M53.8611 64.7226C53.7592 64.7226 40.0792 64.7226 21.4672 63.0045C16.2172 62.5198 20.554 57.8501 23.3628 55.5494C27.5439 52.1247 29.9975 50.316 31.2909 48.8207C34.3715 45.2591 23.6645 39.0692 22.5591 36.1027C21.8441 34.1836 22.9398 31.9757 24.597 29.8496C29.0383 24.1515 33.6534 23.0843 37.933 22.3856C43.6731 21.4486 48.2012 22.4395 49.5735 23.0338C52.6894 24.383 55.1542 28.498 57.2247 32.4556C59.5937 36.9838 57.4214 43.6403 55.4317 46.768C53.3263 50.0774 50.1613 50.0965 49.3476 50.6156C46.647 52.3385 56.9321 59.0064 60.8533 65.3302C61.0001 66.2845 60.1585 66.4953 59.0441 66.6039C57.9297 66.7125 56.568 66.7125 53.9135 65.7856" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M36.18 33.4395C36.18 33.4801 36.18 33.5207 36.1536 33.9244C36.1273 34.328 36.0746 35.0936 36.2422 35.7653C36.4099 36.437 36.7996 36.9917 37.2875 37.7439" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M44.0476 32.9829V39.5543" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    "</svg>"
+)}`;
+
+function fakeSplashTask(overrides: Partial<Task> & { id: string; content: string }): Task {
   return {
-    width: NOTE_SIZE,
-    height: NOTE_SIZE,
-    borderRadius: NOTE_RADIUS,
-    backgroundColor: c.fill,
-    backgroundImage: "repeating-linear-gradient(to bottom, transparent 0px, transparent 21px, rgba(150,150,150,0.15) 21px, rgba(150,150,150,0.15) 22px)",
-    border: `1px solid ${c.border}`,
-    boxShadow: NOTE_SHADOW,
+    group_id: "splash",
+    type: "todo",
+    assignee_id: null,
+    assignee_name: "Stickki",
+    status: "pending",
+    created_at: new Date().toISOString(),
+    completed_at: null,
+    position_x: 0,
+    position_y: 0,
+    rotation: 0,
+    reactions: {},
+    color: null,
+    is_pinned: false,
+    due_date: null,
+    ...overrides,
   };
 }
 
+const SPLASH_PINK_TASK = fakeSplashTask({
+  id: "splash-pink",
+  content: "이 집에서 우리끼리 잘 살아가자",
+  color: "#FEE2E2",
+  rotation: -8,
+  due_date: new Date(Date.now() - 7 * 86400000).toISOString(),
+});
+const SPLASH_BLUE_TASK = fakeSplashTask({
+  id: "splash-blue",
+  content: "오늘까지 설거지 좀 부탁해",
+  color: "#DBEAFE",
+  rotation: 0,
+});
+const SPLASH_YELLOW_TASK = fakeSplashTask({
+  id: "splash-yellow",
+  content: "함께하는 우리\n어떻게 하면 더 끈끈해질까?",
+  color: "#FEF9C3",
+  rotation: 6.5,
+  due_date: new Date(Date.now() + 2 * 86400000).toISOString(),
+});
+const SPLASH_YELLOW_TASK_2 = fakeSplashTask({
+  id: "splash-yellow-2",
+  content: "함께하는 우리\n어떻게 하면 더 끈끈해질까?",
+  color: "#FEF9C3",
+  rotation: 8,
+  status: "done",
+  completed_at: new Date().toISOString(),
+  due_date: new Date(Date.now() + 2 * 86400000).toISOString(),
+});
+
 function Splash({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<"stack" | "scatter">("stack");
+  const [typedLength, setTypedLength] = useState(0);
 
   useEffect(() => {
-    const toScatter = setTimeout(() => setPhase("scatter"), 700);
-    const toDone = setTimeout(onDone, 2400);
-    return () => { clearTimeout(toScatter); clearTimeout(toDone); };
+    const fullText = SPLASH_YELLOW_TASK.content;
+    const TYPE_INTERVAL_MS = 40;
+    const PAUSE_AFTER_TYPING_MS = 700;
+    const SCATTER_VISIBLE_MS = 1700;
+    const typingDuration = fullText.length * TYPE_INTERVAL_MS;
+    const scatterDelay = typingDuration + PAUSE_AFTER_TYPING_MS;
+
+    let i = 0;
+    const typeInterval = setInterval(() => {
+      i += 1;
+      setTypedLength(i);
+      if (i >= fullText.length) clearInterval(typeInterval);
+    }, TYPE_INTERVAL_MS);
+    const toScatter = setTimeout(() => setPhase("scatter"), scatterDelay);
+    const toDone = setTimeout(onDone, scatterDelay + SCATTER_VISIBLE_MS);
+    return () => { clearInterval(typeInterval); clearTimeout(toScatter); clearTimeout(toDone); };
   }, [onDone]);
+
+  const typedYellowTask: Task = { ...SPLASH_YELLOW_TASK, content: SPLASH_YELLOW_TASK.content.slice(0, typedLength) };
 
   return (
     <main
@@ -183,42 +259,45 @@ function Splash({ onDone }: { onDone: () => void }) {
       }}
       onClick={onDone}
     >
-      {/* 핑크 노트 — 스택 시 중앙, 스캐터 시 Figma 절대좌표 */}
+      {/* 핑크 카드 — 스택 시 중앙, 스캐터 시 Figma 절대좌표 */}
       <motion.div
-        className="absolute"
-        style={noteStyle("pink")}
-        initial={{ left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, rotate: -10, opacity: 0 }}
+        className="absolute pointer-events-none"
+        style={{ zIndex: 1 }}
+        initial={{ left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 0 }}
         animate={
           phase === "stack"
-            ? { left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, rotate: -10, opacity: 1 }
-            : { left: -120, top: 49, rotate: -14, opacity: 1 }
+            ? { left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 1 }
+            : { left: -120, top: 49, opacity: 1 }
         }
         transition={{ type: "spring", stiffness: 220, damping: 22 }}
-      />
+      >
+        <PostItCard task={SPLASH_PINK_TASK} size={CARD_SIZE} style={{ width: CARD_SIZE }} memberAvatar={STICKKI_CHARACTER_AVATAR} hideDecoration={phase === "stack"} />
+      </motion.div>
 
-      {/* 파랑 노트 — 스택 시 중앙, 스캐터 시 Figma 절대좌표 */}
+      {/* 파랑 카드 — 스택 시 중앙, 스캐터 시 Figma 절대좌표 */}
       <motion.div
-        className="absolute"
-        style={noteStyle("blue")}
-        initial={{ left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, rotate: 12, opacity: 0 }}
+        className="absolute pointer-events-none"
+        style={{ zIndex: 1 }}
+        initial={{ left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 0 }}
         animate={
           phase === "stack"
-            ? { left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, rotate: 12, opacity: 1 }
-            : { left: 293, top: 120, rotate: 16, opacity: 1 }
+            ? { left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 1 }
+            : { left: 293, top: 120, opacity: 1 }
         }
         transition={{ type: "spring", stiffness: 220, damping: 22, delay: 0.05 }}
-      />
+      >
+        <PostItCard task={SPLASH_BLUE_TASK} size={CARD_SIZE} style={{ width: CARD_SIZE }} memberAvatar={STICKKI_CHARACTER_AVATAR} hideDecoration={phase === "stack"} />
+      </motion.div>
 
-      {/* 중앙: 쌓인 노란 노트 ↔ 워드마크 크로스페이드 */}
-      <div className="relative" style={{ width: NOTE_SIZE, height: NOTE_SIZE }}>
+      {/* 중앙: 쌓인 노란 카드 ↔ 워드마크 크로스페이드 */}
+      <div className="relative" style={{ width: CARD_SIZE, height: CARD_SIZE, zIndex: 1 }}>
         <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ ...noteStyle("yellow"), width: "100%", height: "100%" }}
-          initial={{ opacity: 1, scale: 1, rotate: -2 }}
-          animate={phase === "stack" ? { opacity: 1, scale: 1, rotate: -2 } : { opacity: 0, scale: 1, rotate: -2 }}
+          className="absolute inset-0 pointer-events-none"
+          initial={{ opacity: 1 }}
+          animate={phase === "stack" ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <StickkiLogo style={{ width: 90, height: "auto", color: "#1a1a1a" }} />
+          <PostItCard task={typedYellowTask} size={CARD_SIZE} style={{ width: CARD_SIZE }} memberAvatar={STICKKI_CHARACTER_AVATAR} hideDecoration forceDDayLabel="D-Day" forceDDayTier="orange" />
         </motion.div>
 
         <motion.div
@@ -232,15 +311,19 @@ function Splash({ onDone }: { onDone: () => void }) {
         </motion.div>
       </div>
 
-      {/* 노랑 태그(우하단) — Figma 절대좌표 */}
+      {/* 노랑 카드(우하단) — Figma 절대좌표 */}
       <motion.div
-        className="absolute flex items-center justify-center"
-        style={noteStyle("yellow")}
-        initial={{ left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, opacity: 0, rotate: 10 }}
-        animate={phase === "scatter" ? { left: 250, top: 529, opacity: 1, rotate: 8 } : { left: NOTE_LEFT_CENTER, top: NOTE_TOP_CENTER, opacity: 0, rotate: 10 }}
+        className="absolute pointer-events-none"
+        style={{ zIndex: 1 }}
+        initial={{ left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 0 }}
+        animate={
+          phase === "scatter"
+            ? { left: 250, top: 529, opacity: 1 }
+            : { left: CARD_LEFT_CENTER, top: CARD_TOP_CENTER, opacity: 0 }
+        }
         transition={{ delay: 0.4, type: "spring", stiffness: 260, damping: 20 }}
       >
-        <StickkiLogo style={{ width: 90, height: "auto", color: "#1a1a1a" }} />
+        <PostItCard task={SPLASH_YELLOW_TASK_2} size={CARD_SIZE} style={{ width: CARD_SIZE }} memberAvatar={STICKKI_CHARACTER_AVATAR} />
       </motion.div>
     </main>
   );

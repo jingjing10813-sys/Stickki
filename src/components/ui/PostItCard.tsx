@@ -79,6 +79,9 @@ interface PostItCardProps {
   isSwapping?: boolean;
   isBeingDeleted?: boolean;
   isLongPressTarget?: boolean;
+  hideDecoration?: boolean;
+  forceDDayLabel?: string;
+  forceDDayTier?: keyof typeof DDAY_COLORS;
   onDragStart?: (id: string, clientX: number, clientY: number) => void;
   onLongPress?: (id: string) => void;
   onTap?: (id: string) => void;
@@ -94,6 +97,9 @@ function PostItCard({
   isSwapping,
   isBeingDeleted,
   isLongPressTarget,
+  hideDecoration,
+  forceDDayLabel,
+  forceDDayTier,
   onDragStart,
   onLongPress,
   onTap,
@@ -106,7 +112,9 @@ function PostItCard({
   const color = task.color ?? (isTodo
     ? getColor(task.id, TODO_COLORS)
     : getColor(task.id, NOTE_COLORS));
-  const dDayInfo = getDDayInfo(task);
+  const dDayInfo = forceDDayLabel
+    ? { label: forceDDayLabel, ...DDAY_COLORS[forceDDayTier ?? "orange"] }
+    : getDDayInfo(task);
 
   const reactions: Record<string, number> = task.reactions ?? {};
   const reactionEntries = Object.entries(reactions).filter(([, count]) => count > 0);
@@ -156,24 +164,6 @@ function PostItCard({
       }}
       onPointerDown={(e) => {
         if ((e.target as Element).closest("button")) return;
-        const now = Date.now();
-        if (now - lastTapRef.current < 300) {
-          lastTapRef.current = 0;
-          if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
-          if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
-          if (cardRef.current) {
-            const rect = cardRef.current.getBoundingClientRect();
-            const vw = window.innerWidth;
-            const pickerW = 320;
-            if (rect.left + pickerW / 2 > vw) setPickerAlign("right");
-            else if (rect.right - pickerW / 2 < 0) setPickerAlign("left");
-            else setPickerAlign("center");
-            setPickerPos({ x: rect.left + rect.width / 2, y: rect.bottom });
-          }
-          setShowPicker(true);
-          return;
-        }
-        lastTapRef.current = now;
         longPressFiredRef.current = false;
         pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
         longPressTimerRef.current = setTimeout(() => {
@@ -200,6 +190,27 @@ function PostItCard({
         if (!pointerDownPosRef.current) return;
         pointerDownPosRef.current = null;
         if (longPressFiredRef.current) return;
+
+        // 더블탭 감지 — 현재 탭의 pointerup이 완전히 끝난 뒤에 피커를 열어야
+        // 같은 제스처의 pointerup이 새로 마운트된 배경(backdrop)에 떨어져
+        // 바로 닫혀버리는 레이스 컨디션을 피할 수 있음
+        const now = Date.now();
+        if (now - lastTapRef.current < 300) {
+          lastTapRef.current = 0;
+          if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
+          if (cardRef.current) {
+            const rect = cardRef.current.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const pickerW = 230;
+            if (rect.left + pickerW / 2 > vw) setPickerAlign("right");
+            else if (rect.right - pickerW / 2 < 0) setPickerAlign("left");
+            else setPickerAlign("center");
+            setPickerPos({ x: rect.left + rect.width / 2, y: rect.bottom });
+          }
+          setShowPicker(true);
+          return;
+        }
+        lastTapRef.current = now;
         singleTapTimerRef.current = setTimeout(() => {
           singleTapTimerRef.current = null;
           onTap?.(task.id);
@@ -209,7 +220,17 @@ function PostItCard({
       {/* 반응 피커 - portal로 body에 렌더링 (z-index 충돌 방지) */}
       {mounted && showPicker && pickerPos && createPortal(
         <AnimatePresence>
+          {/* 배경 — transform이 걸린 조상 안에 두면 fixed의 컨테이닝 블록이 바뀌어 화면 전체를 못 덮으므로 별도 형제로 분리 */}
           <div
+            key="picker-backdrop"
+            className="fixed inset-0"
+            style={{ zIndex: 9998 }}
+            onClick={() => setShowPicker(false)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          />
+          <div
+            key="picker-body"
             style={{
               position: "fixed",
               left: pickerAlign === "right" ? "auto" : pickerAlign === "left" ? pickerPos.x - 8 : pickerPos.x,
@@ -324,14 +345,14 @@ function PostItCard({
             <g filter={isLongPressTarget ? undefined : `url(#postit-shadow-${task.id})`}>
               <rect width="180" height="180" rx="18" fill={color} />
               <rect width="180" height="180" rx="18" fill={`url(#postit-ruled-${task.id})`} fillOpacity="0.5" />
-              {isDone && <rect width="180" height="180" rx="18" fill="black" fillOpacity="0.1" />}
+              {isDone && <rect width="180" height="180" rx="18" fill="black" fillOpacity="0.04" />}
               <rect x="0.5" y="0.5" width="179" height="179" rx="17.5" fill="none" stroke={COLOR_STROKE[color] ?? "rgba(255,255,255,0.6)"} strokeWidth="1" />
             </g>
             {isLongPressTarget && (
               <rect x="0.5" y="0.5" width="179" height="179" rx="17.5" fill="none" stroke="#FF3B30" strokeWidth="2.5" />
             )}
             {/* 등록한 메모 타입 구분 — 할일: 테이프, 쪽지: 핀 */}
-            {isTodo ? (
+            {!hideDecoration && (isTodo ? (
               <g transform="translate(-20,-20)" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.15))" }}>
                 <foreignObject x="79.4" y="-1.6" width="60.6043" height="51.8066">
                   <div
@@ -345,7 +366,7 @@ function PostItCard({
                 <circle cx="111" cy="14" r="8" fill={`url(#postit-pin-fill-${task.id})`} />
                 <path d="M111 19L111 29.8351" stroke={`url(#postit-pin-stroke-${task.id})`} strokeWidth="2" strokeLinecap="round" />
               </g>
-            )}
+            ))}
           </svg>
           <div
             className="absolute inset-0 rounded-xl pointer-events-none"
@@ -392,8 +413,10 @@ function PostItCard({
                     style={{
                       backgroundColor: dDayInfo.bg,
                       borderRadius: isSmall ? 6 : 8,
-                      width: isSmall ? 30 : 38,
+                      minWidth: isSmall ? 30 : 38,
                       height: isSmall ? 18 : 22,
+                      paddingLeft: 4,
+                      paddingRight: 4,
                       boxShadow: `0 2px 6px ${dDayInfo.shadow}`,
                       filter: isDone ? "brightness(0.8)" : "none",
                     }}
@@ -410,12 +433,13 @@ function PostItCard({
             )}
 
             <p
-              className={isSmall ? "font-sans leading-snug flex-1" : "font-motto leading-snug flex-1"}
+              className="font-ongeulip leading-snug flex-1"
               style={{
                 color: "#000000",
                 textDecoration: isDone ? "line-through" : "none",
                 fontWeight: isSmall ? 400 : undefined,
                 fontSize: isSmall ? "10px" : task.content.length > 30 ? "12px" : "14px",
+                whiteSpace: "pre-line",
                 display: "-webkit-box",
                 WebkitBoxOrient: "vertical",
                 WebkitLineClamp: isTodo ? (isSmall ? 4 : 5) : (isSmall ? 7 : 6),
@@ -473,9 +497,10 @@ function PostItCard({
                   key={emoji}
                   whileTap={{ scale: 0.85 }}
                   onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
+                  className="flex items-center gap-0.5 px-1.5 rounded-full text-xs font-semibold"
                   style={{
-                    background: "rgba(107,114,128,0.2)",
+                    height: 24,
+                    background: "rgba(31,32,35,0.2)",
                     backdropFilter: "blur(7.3px)",
                     WebkitBackdropFilter: "blur(7.3px)",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.15)",

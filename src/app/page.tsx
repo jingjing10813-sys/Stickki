@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { StickkiLogo } from "@/components/ui/StickkiLogos";
+import { StickkiLogo, CharacterGhost, BackButtonIcon } from "@/components/ui/StickkiLogos";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 type Step = "landing" | "create-name" | "create-motto" | "join" | "profile-setup";
 const STEPS: Step[] = ["landing", "create-name", "create-motto", "join", "profile-setup"];
@@ -21,6 +22,14 @@ function generateInviteCode(): string {
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <OnboardingPageInner />
+    </Suspense>
+  );
+}
+
+function OnboardingPageInner() {
   const router = useRouter();
   const { loading: authLoading, user, profile, refreshProfile, signOut } = useAuth();
   const searchParams = useSearchParams();
@@ -202,12 +211,8 @@ export default function OnboardingPage() {
     router.push(pendingGroupId ? `/${pendingGroupId}` : "/");
   }
 
-  if (authLoading) {
-    return (
-      <main className="min-h-screen dot-pattern flex items-center justify-center">
-        <span className="t-text-faint text-sm">불러오는 중...</span>
-      </main>
-    );
+  if (authLoading || previewStep === "loading") {
+    return <LoadingScreen />;
   }
 
   return (
@@ -237,7 +242,7 @@ export default function OnboardingPage() {
 
             {/* 캐릭터 */}
             <div className="w-full max-w-sm flex items-center gap-2" style={{ marginBottom: -4 }}>
-              <CharacterGhost style={{ width: 72, height: "auto" }} />
+              <CharacterGhost animated style={{ width: 72, height: "auto" }} />
             </div>
 
             {/* 버튼 */}
@@ -483,8 +488,8 @@ export default function OnboardingPage() {
 
             <div className="absolute flex flex-col items-center px-6" style={{ top: 0, left: 0, right: 0, paddingTop: 130 }}>
               <ProgressDots total={3} current={2} />
-              <p className="font-sans font-semibold t-text mt-6" style={{ fontSize: 20 }}>나만의 스티끼를 그려보세요</p>
-              <p className="font-sans text-sm mt-1" style={{ color: "#6b6b6b" }}>자유롭게 그린 그림이 내 프로필이 돼요.</p>
+              <p className="font-sans font-semibold t-text mt-6" style={{ fontSize: 20 }}>나만의 프로필을 그려보세요</p>
+              <p className="font-sans text-sm mt-1" style={{ color: "#6b6b6b" }}>프로필은 언제나 수정 가능해요</p>
 
               <motion.button
                 layout
@@ -529,7 +534,7 @@ export default function OnboardingPage() {
 
             </div>
 
-            {drawnAvatar && sheetLevel === 0 && (
+            {sheetLevel === 0 && (
               <>
                 {saveError && (
                   <p
@@ -542,11 +547,11 @@ export default function OnboardingPage() {
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleSaveProfile}
-                  disabled={loading}
+                  disabled={loading || !drawnAvatar}
                   className="font-semibold text-sm rounded-2xl disabled:opacity-30 flex items-center justify-center"
                   style={{ position: "absolute", bottom: 64, left: "50%", marginLeft: -172.5, width: 345, height: 48, backgroundColor: "#27272A", color: "#F4F4F5" }}
                 >
-                  {loading ? "등록 중..." : "내 스티끼 프로필 등록하기"}
+                  {loading ? "등록 중..." : "프로필 등록하기"}
                 </motion.button>
               </>
             )}
@@ -722,15 +727,6 @@ function ProgressDots({ total, current }: { total: number; current: number }) {
   );
 }
 
-function BackButtonIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} style={style}>
-      <rect width="44" height="44" rx="22" fill="#D1D1D1" fillOpacity="0.4" />
-      <path d="M25 15L18 22L25 29" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function CheckButtonIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} style={style}>
@@ -750,54 +746,6 @@ function PenIcon({ tipColor, className, style }: { tipColor: string; className?:
   );
 }
 
-function CharacterGhost({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  const eyeLookSequence = [
-    { x: 0, y: 0 },
-    { x: 1.8, y: -1.2 },
-    { x: 1.8, y: -1.2 },
-    { x: 0, y: 0 },
-    { x: -1.5, y: 0.8 },
-    { x: -1.5, y: 0.8 },
-    { x: 0.5, y: -1.5 },
-    { x: 0.5, y: -1.5 },
-    { x: 0, y: 0 },
-  ];
-  const eyeX = eyeLookSequence.map((p) => p.x);
-  const eyeY = eyeLookSequence.map((p) => p.y);
-
-  return (
-    <svg width="95" height="69" viewBox="0 0 95 69" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} style={style}>
-      <path d="M53.8611 64.7226C53.7592 64.7226 40.0792 64.7226 21.4672 63.0045C16.2172 62.5198 20.554 57.8501 23.3628 55.5494C27.5439 52.1247 29.9975 50.316 31.2909 48.8207C34.3715 45.2591 23.6645 39.0692 22.5591 36.1027C21.8441 34.1836 22.9398 31.9757 24.597 29.8496C29.0383 24.1515 33.6534 23.0843 37.933 22.3856C43.6731 21.4486 48.2012 22.4395 49.5735 23.0338C52.6894 24.383 55.1542 28.498 57.2247 32.4556C59.5937 36.9838 57.4214 43.6403 55.4317 46.768C53.3263 50.0774 50.1613 50.0965 49.3476 50.6156C46.647 52.3385 56.9321 59.0064 60.8533 65.3302C61.0001 66.2845 60.1585 66.4953 59.0441 66.6039C57.9297 66.7125 56.568 66.7125 53.9135 65.7856" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      {/* 눈 — 시선이 이동하는 애니메이션 */}
-      <motion.g
-        animate={{ x: eyeX, y: eyeY }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          ease: "easeInOut",
-          times: eyeLookSequence.map((_, i) => i / (eyeLookSequence.length - 1)),
-        }}
-      >
-        <path d="M36.18 33.4395C36.18 33.4801 36.18 33.5207 36.1536 33.9244C36.1273 34.328 36.0746 35.0936 36.2422 35.7653C36.4099 36.437 36.7996 36.9917 37.2875 37.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M44.0476 32.9829V39.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      </motion.g>
-      <path d="M70.7085 24.6011C70.7085 24.6229 70.7085 24.6448 70.7085 26.7092C70.7085 28.7735 70.7085 32.8797 70.682 35.3327C70.6554 37.7857 70.6023 38.4611 70.5476 39.157" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M70.5476 32.9814C70.5476 32.9572 70.5476 32.933 71.7496 32.9085C72.9517 32.8839 75.3557 32.8597 76.9577 32.9206C78.5596 32.9815 79.2865 33.1283 80.5418 33.289" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M83.1256 23.9619C83.1256 24.0095 83.1256 24.0572 83.0752 26.7708C83.0248 29.4844 82.9241 34.8625 82.8016 38.0831C82.679 41.3038 82.5377 42.204 82.3921 43.9668" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M92 22.0757V22" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M92.2087 29.3164V40.7515" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <foreignObject x="-7.6" y="-7.6" width="60.7702" height="50.7978">
-        <div style={{ backdropFilter: "blur(3.8px)", clipPath: "url(#character-tape-clip)", height: "100%", width: "100%" }} />
-      </foreignObject>
-      <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" fill="#D9D9D9" fillOpacity="0.4" />
-      <defs>
-        <clipPath id="character-tape-clip" transform="translate(7.6 7.6)">
-          <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" />
-        </clipPath>
-      </defs>
-    </svg>
-  );
-}
 
 function MemoNoteSvg({
   title,

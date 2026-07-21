@@ -57,7 +57,7 @@ export default function InviteCodePage() {
   if (!group) {
     return (
       <main className="min-h-screen flex items-center justify-center dot-pattern">
-        <span className="text-sm text-gray-400">불러오는 중...</span>
+        <span className="text-sm t-text-faint">불러오는 중...</span>
       </main>
     );
   }
@@ -72,13 +72,13 @@ export default function InviteCodePage() {
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
           className="w-11 h-11 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: "#F4F4F5" }}
+          style={{ backgroundColor: "var(--card)" }}
         >
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
-            <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="#1C1C1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="var(--text-1)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </motion.button>
-        <span className="absolute left-1/2 -translate-x-1/2 font-semibold text-base" style={{ color: "#1C1C1E" }}>
+        <span className="absolute left-1/2 -translate-x-1/2 font-semibold text-base t-text">
           초대코드
         </span>
       </header>
@@ -87,20 +87,20 @@ export default function InviteCodePage() {
       <div className="flex-1 px-5 pt-4 flex flex-col items-center">
 
         {/* 그룹명 */}
-        <p className="text-base font-semibold mb-5" style={{ color: "#1C1C1E" }}>
+        <p className="text-base font-semibold mb-5 t-text">
           {group.name} 초대코드
         </p>
 
         {/* 코드 박스 */}
         <div
           className="flex items-center justify-center gap-2 px-6 py-5 rounded-2xl mb-6"
-          style={{ backgroundColor: "#F4F4F5" }}
+          style={{ backgroundColor: "var(--card)" }}
         >
           {codeChars.map((char, i) => (
             <span
               key={i}
-              className="text-2xl font-bold"
-              style={{ color: "#1C1C1E", minWidth: 28, textAlign: "center" }}
+              className="text-2xl font-bold t-text"
+              style={{ minWidth: 28, textAlign: "center" }}
             >
               {char}
             </span>
@@ -124,11 +124,11 @@ export default function InviteCodePage() {
               whileTap={{ scale: 0.9 }}
               onClick={handleCopy}
               className="w-14 h-14 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "#F4F4F5" }}
+              style={{ backgroundColor: "var(--card)" }}
             >
               {copied ? (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12l5 5L20 7" stroke="#1C1C1E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 12l5 5L20 7" stroke="var(--text-1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               ) : (
                 <CopyIcon />
@@ -138,16 +138,16 @@ export default function InviteCodePage() {
         </div>
 
         {/* 구분선 */}
-        <div className="self-stretch -mx-5" style={{ height: 12, backgroundColor: "#F4F4F5" }} />
+        <div className="self-stretch -mx-5" style={{ height: 12, backgroundColor: "var(--card)" }} />
 
         {/* 안내사항 */}
         <div className="w-full pt-6">
-          <p className="text-base font-semibold mb-3" style={{ color: "#1C1C1E" }}>안내사항</p>
+          <p className="text-base font-semibold mb-3 t-text">안내사항</p>
           <div className="flex flex-col gap-1.5">
-            <p className="text-sm" style={{ color: "#8E8E93" }}>
+            <p className="text-sm t-text-sub">
               함께 생활하는 사람에게 초대 코드를 공유해 주세요.
             </p>
-            <p className="text-sm" style={{ color: "#8E8E93" }}>
+            <p className="text-sm t-text-sub">
               생성된 초대코드는 변경할 수 없어요.
             </p>
           </div>

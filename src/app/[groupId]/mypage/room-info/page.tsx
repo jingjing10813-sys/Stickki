@@ -63,7 +63,7 @@ export default function RoomInfoPage() {
   if (!group) {
     return (
       <main className="min-h-screen flex items-center justify-center dot-pattern">
-        <span className="text-sm text-gray-400">불러오는 중...</span>
+        <span className="text-sm t-text-faint">불러오는 중...</span>
       </main>
     );
   }
@@ -78,13 +78,13 @@ export default function RoomInfoPage() {
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
           className="w-11 h-11 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: "#F4F4F5" }}
+          style={{ backgroundColor: "var(--card)" }}
         >
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
-            <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="#1C1C1E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7.5 1.5L2 7.5L7.5 13.5" stroke="var(--text-1)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </motion.button>
-        <span className="absolute left-1/2 -translate-x-1/2 font-semibold text-base" style={{ color: "#1C1C1E" }}>
+        <span className="absolute left-1/2 -translate-x-1/2 font-semibold text-base t-text">
           방 정보
         </span>
       </header>
@@ -94,12 +94,12 @@ export default function RoomInfoPage() {
 
         {/* 가훈 섹션 */}
         <section>
-          <p className="text-base font-semibold mb-2" style={{ color: "#1C1C1E" }}>
+          <p className="text-base font-semibold mb-2 t-text">
             {group.name} 가훈
           </p>
           <div
             className="flex items-center justify-between rounded-2xl px-4 py-4"
-            style={{ backgroundColor: "#F4F4F5" }}
+            style={{ backgroundColor: "var(--card)" }}
           >
             {editingMotto ? (
               <input
@@ -108,11 +108,10 @@ export default function RoomInfoPage() {
                 onChange={(e) => setMottoInput(e.target.value)}
                 onBlur={handleSaveMotto}
                 onKeyDown={(e) => e.key === "Enter" && handleSaveMotto()}
-                className="flex-1 bg-transparent text-sm outline-none"
-                style={{ color: "#1C1C1E" }}
+                className="flex-1 bg-transparent text-sm outline-none t-text"
               />
             ) : (
-              <span className="flex-1 text-sm" style={{ color: "#1C1C1E" }}>
+              <span className="flex-1 text-sm t-text">
                 {group.motto || "가훈을 입력해주세요"}
               </span>
             )}
@@ -125,7 +124,7 @@ export default function RoomInfoPage() {
               className="ml-3 flex-shrink-0"
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M11.2502 5.41671L14.5835 8.75004M3.3335 16.6668H6.66683L15.4168 7.91676C15.6357 7.69789 15.8093 7.43805 15.9278 7.15208C16.0462 6.86612 16.1072 6.55962 16.1072 6.25009C16.1072 5.94056 16.0462 5.63406 15.9278 5.3481C15.8093 5.06213 15.6357 4.80229 15.4168 4.58342C15.198 4.36455 14.9381 4.19094 14.6522 4.07248C14.3662 3.95403 14.0597 3.89307 13.7502 3.89307C13.4406 3.89307 13.1341 3.95403 12.8482 4.07248C12.5622 4.19094 12.3024 4.36455 12.0835 4.58342L3.3335 13.3334V16.6668Z" stroke="#C7C7CC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M11.2502 5.41671L14.5835 8.75004M3.3335 16.6668H6.66683L15.4168 7.91676C15.6357 7.69789 15.8093 7.43805 15.9278 7.15208C16.0462 6.86612 16.1072 6.55962 16.1072 6.25009C16.1072 5.94056 16.0462 5.63406 15.9278 5.3481C15.8093 5.06213 15.6357 4.80229 15.4168 4.58342C15.198 4.36455 14.9381 4.19094 14.6522 4.07248C14.3662 3.95403 14.0597 3.89307 13.7502 3.89307C13.4406 3.89307 13.1341 3.95403 12.8482 4.07248C12.5622 4.19094 12.3024 4.36455 12.0835 4.58342L3.3335 13.3334V16.6668Z" stroke="var(--text-3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </motion.button>
           </div>
@@ -134,25 +133,25 @@ export default function RoomInfoPage() {
         {/* 구성원 섹션 */}
         <section>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-base font-semibold" style={{ color: "#1C1C1E" }}>
+            <p className="text-base font-semibold t-text">
               {group.name} 구성원
             </p>
-            <span className="text-sm" style={{ color: "#8E8E93" }}>{memberCount}명</span>
+            <span className="text-sm t-text-sub">{memberCount}명</span>
           </div>
           <div className="flex flex-col gap-2">
             {(group.members ?? []).map((member: Member) => (
               <div
                 key={member.id}
                 className="flex items-center gap-3 rounded-2xl py-3"
-                style={{ backgroundColor: "#FFFFFF" }}
+                style={{ backgroundColor: "var(--card)" }}
               >
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: "#E4E4E7" }}
+                  style={{ backgroundColor: "var(--card-hover)" }}
                 >
                   <UserIcon />
                 </div>
-                <span className="text-sm font-medium" style={{ color: "#1C1C1E" }}>
+                <span className="text-sm font-medium t-text">
                   {member.name}
                 </span>
               </div>
@@ -163,12 +162,12 @@ export default function RoomInfoPage() {
       </div>
 
       {/* 방 나가기 버튼 */}
-      <div className="fixed bottom-0 left-0 right-0 px-5 pb-10 bg-white">
+      <div className="fixed bottom-0 left-0 right-0 px-5 pb-10" style={{ backgroundColor: "var(--bg)" }}>
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => setShowLeaveConfirm(true)}
-          className="w-full py-4 rounded-2xl text-sm font-semibold"
-          style={{ border: "1.5px solid #E4E4E7", color: "#1C1C1E", backgroundColor: "#FFFFFF" }}
+          className="w-full py-4 rounded-2xl text-sm font-semibold t-text"
+          style={{ border: "1.5px solid var(--border-color)", backgroundColor: "var(--bg-elevated)" }}
         >
           방 나가기
         </motion.button>
@@ -193,12 +192,12 @@ export default function RoomInfoPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.92 }}
                 transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                className="w-full rounded-3xl px-6 py-8 pointer-events-auto"
-                style={{ maxWidth: 320, backgroundColor: "white", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}
+                className="w-full glass rounded-3xl px-6 py-8 pointer-events-auto"
+                style={{ maxWidth: 320 }}
               >
                 <div className="text-center mb-6">
-                  <p className="font-semibold text-lg mb-2" style={{ color: "#1C1C1E" }}>방을 나가시겠어요?</p>
-                  <p className="text-sm leading-relaxed" style={{ color: "#8E8E93" }}>
+                  <p className="font-semibold text-lg mb-2 t-text">방을 나가시겠어요?</p>
+                  <p className="text-sm leading-relaxed t-text-muted">
                     방에서 나가면 내 할 일과 쪽지는<br />그대로 남아요. 다시 입장하려면<br />초대 코드가 필요해요.
                   </p>
                 </div>
@@ -214,8 +213,7 @@ export default function RoomInfoPage() {
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setShowLeaveConfirm(false)}
-                    className="w-full py-3 rounded-2xl font-semibold text-sm"
-                    style={{ backgroundColor: "#F4F4F5", color: "#1C1C1E" }}
+                    className="w-full py-3 rounded-2xl font-semibold text-sm t-btn-secondary"
                   >
                     취소
                   </motion.button>

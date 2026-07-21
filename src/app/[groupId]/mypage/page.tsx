@@ -262,7 +262,7 @@ export default function MyPage() {
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 22 }}
               className="rounded-full flex items-center justify-center text-5xl overflow-hidden"
-              style={{ width: 100, height: 100, backgroundColor: "#FFFFFF", border: "1.5px solid #E5E5E5" }}
+              style={{ width: 100, height: 100, backgroundColor: "var(--card-hover)", border: "1.5px solid var(--border-color)" }}
             >
               <Avatar avatar={me.avatar} fallback={me.avatar} size={100} className="text-5xl" />
             </motion.div>
@@ -270,7 +270,7 @@ export default function MyPage() {
               whileTap={{ scale: 0.9 }}
               onClick={() => { setNameInput(me.name); setShowEditModal(true); }}
               className="absolute bottom-0 right-0 rounded-full flex items-center justify-center"
-              style={{ width: 28, height: 28, backgroundColor: "#E5E5E5" }}
+              style={{ width: 28, height: 28, backgroundColor: "var(--card-hover)" }}
             >
               <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
                 <path d="M11.2502 5.41671L14.5835 8.75004M3.3335 16.6668H6.66683L15.4168 7.91676C15.6357 7.69789 15.8093 7.43805 15.9278 7.15208C16.0462 6.86612 16.1072 6.55962 16.1072 6.25009C16.1072 5.94056 16.0462 5.63406 15.9278 5.3481C15.8093 5.06213 15.6357 4.80229 15.4168 4.58342C15.198 4.36455 14.9381 4.19094 14.6522 4.07248C14.3662 3.95403 14.0597 3.89307 13.7502 3.89307C13.4406 3.89307 13.1341 3.95403 12.8482 4.07248C12.5622 4.19094 12.3024 4.36455 12.0835 4.58342L3.3335 13.3334V16.6668Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
@@ -278,7 +278,7 @@ export default function MyPage() {
             </motion.button>
           </div>
           <p className="font-display font-bold t-text text-xl mb-0.5">{me.name}</p>
-          <p className="text-sm" style={{ color: "#A1A1AA" }}>{user?.email}</p>
+          <p className="text-sm t-text-sub">{user?.email}</p>
         </div>
 
         {/* ── 통계 row ── */}
@@ -293,10 +293,10 @@ export default function MyPage() {
               whileTap={{ scale: 0.96 }}
               onClick={() => router.push(`/${groupId}/list?filter=${stat.tab}`)}
               className="flex-1 flex flex-col items-center"
-              style={{ backgroundColor: "rgba(228, 228, 231, 0.5)", borderRadius: 10, padding: "16px 10px", gap: 6 }}
+              style={{ backgroundColor: "var(--card)", borderRadius: 10, padding: "16px 10px", gap: 6 }}
             >
               <p className="font-bold text-xl t-text leading-none">{stat.count}</p>
-              <p className="text-sm" style={{ color: "#71717A" }}>{stat.label}</p>
+              <p className="text-sm t-text-sub">{stat.label}</p>
             </motion.button>
           ))}
         </div>
@@ -304,7 +304,7 @@ export default function MyPage() {
         {/* ── 기본 섹션 ── */}
         <div>
           <p className="t-text-muted text-xs font-semibold mb-2 px-1">기본</p>
-          <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E4E4E7", borderRadius: 20, overflow: "hidden" }}>
+          <div style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-color)", borderRadius: 20, overflow: "hidden" }}>
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => router.push(`/${groupId}/mypage/invite-code`)}
@@ -314,7 +314,7 @@ export default function MyPage() {
               <span className="t-text text-sm font-medium">초대 코드</span>
               <ChevronRight />
             </motion.button>
-            <div style={{ height: 1, backgroundColor: "#E4E4E7", marginLeft: 10, marginRight: 10 }} />
+            <div style={{ height: 1, backgroundColor: "var(--border-color)", marginLeft: 10, marginRight: 10 }} />
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => router.push(`/${groupId}/mypage/room-info`)}
@@ -330,22 +330,25 @@ export default function MyPage() {
         {/* ── 설정 섹션 ── */}
         <div>
           <p className="t-text-muted text-xs font-semibold mb-2 px-1">설정</p>
-          <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E4E4E7", borderRadius: 20, overflow: "hidden" }}>
+          <div style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-color)", borderRadius: 20, overflow: "hidden" }}>
             {/* 알림설정 */}
             <div className="flex items-center justify-between" style={{ padding: "16px 20px" }}>
               <span className="t-text text-sm font-medium">알림설정</span>
               <button
                 onClick={() => setNotifEnabled((v) => !v)}
                 className="relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0"
-                style={{ backgroundColor: notifEnabled ? "#1C1C1E" : "#D1D5DB" }}
+                style={{ backgroundColor: notifEnabled ? "var(--btn-primary-bg)" : "var(--border-mid)" }}
               >
                 <span
-                  className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
-                  style={{ transform: notifEnabled ? "translateX(20px)" : "translateX(0px)" }}
+                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200"
+                  style={{
+                    backgroundColor: notifEnabled ? "var(--btn-primary-text)" : "#FFFFFF",
+                    transform: notifEnabled ? "translateX(20px)" : "translateX(0px)",
+                  }}
                 />
               </button>
             </div>
-            <div style={{ height: 1, backgroundColor: "#E4E4E7", marginLeft: 10, marginRight: 10 }} />
+            <div style={{ height: 1, backgroundColor: "var(--border-color)", marginLeft: 10, marginRight: 10 }} />
             {/* 로그아웃 */}
             <motion.button
               whileTap={{ scale: 0.98 }}
@@ -356,7 +359,7 @@ export default function MyPage() {
               <span className="t-text text-sm font-medium">로그아웃</span>
               <ChevronRight />
             </motion.button>
-            <div style={{ height: 1, backgroundColor: "#E4E4E7", marginLeft: 10, marginRight: 10 }} />
+            <div style={{ height: 1, backgroundColor: "var(--border-color)", marginLeft: 10, marginRight: 10 }} />
             {/* 계정 탈퇴 */}
             <motion.button
               whileTap={{ scale: 0.98 }}
@@ -367,7 +370,7 @@ export default function MyPage() {
               <span className="t-text text-sm font-medium">계정 탈퇴</span>
               <ChevronRight />
             </motion.button>
-            <div style={{ height: 1, backgroundColor: "#E4E4E7", marginLeft: 10, marginRight: 10 }} />
+            <div style={{ height: 1, backgroundColor: "var(--border-color)", marginLeft: 10, marginRight: 10 }} />
             {/* 약관 및 정책 */}
             <motion.button
               whileTap={{ scale: 0.98 }}
