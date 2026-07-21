@@ -228,7 +228,9 @@ export default function OnboardingPage() {
             {/* 로고 + 모토 */}
             <div className="flex flex-col items-center" style={{ marginTop: 180 }}>
               <StickkiLogo style={{ width: 150, height: "auto", color: "#1a1a1a" }} />
-              <p className="font-sans text-sm mt-2" style={{ color: "#6b6b6b" }}>우리사이, 더 끈끈하게</p>
+              <p className="font-sans text-sm mt-2" style={{ color: "#6b6b6b" }}>
+                <TypewriterText text="우리사이, 더 끈끈하게" delay={500} speed={65} />
+              </p>
             </div>
 
             <div className="flex-1" />
@@ -297,7 +299,7 @@ export default function OnboardingPage() {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="flex flex-col items-center gap-8 pointer-events-auto">
                 <ProgressDots total={3} current={0} />
-                <MemoNoteSvg title="우리집 이름은 ..">
+                <MemoNoteSvg title={<TypewriterText text="우리집 이름은 .." speed={70} />}>
                   <input
                     autoFocus
                     value={roomName}
@@ -345,7 +347,7 @@ export default function OnboardingPage() {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="flex flex-col items-center gap-8 pointer-events-auto">
                 <ProgressDots total={3} current={1} />
-                <MemoNoteSvg title="우리집 가훈은 ..">
+                <MemoNoteSvg title={<TypewriterText text="우리집 가훈은 .." speed={70} />}>
                   <textarea
                     autoFocus
                     value={motto}
@@ -393,7 +395,7 @@ export default function OnboardingPage() {
               <div className="flex flex-col items-center gap-8 pointer-events-auto">
                 <ProgressDots total={3} current={0} />
                 <MemoNoteSvg
-                  title="초대코드를 입력하세요"
+                  title={<TypewriterText text="초대코드를 입력하세요" speed={70} />}
                   borderColor={joinError ? "#EF4444" : "#F5F5F5"}
                   glow={joinError}
                 >
@@ -675,6 +677,33 @@ export default function OnboardingPage() {
   );
 }
 
+function TypewriterText({ text, speed = 60, delay = 0 }: { text: string; speed?: number; delay?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    setDisplayed("");
+    const startTimer = setTimeout(() => {
+      let i = 0;
+      const interval = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) clearInterval(interval);
+      }, speed);
+      return () => clearInterval(interval);
+    }, delay);
+    return () => clearTimeout(startTimer);
+  }, [text, speed, delay]);
+  return (
+    <>
+      {displayed}
+      <motion.span
+        animate={{ opacity: displayed.length < text.length ? [1, 0] : 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+        style={{ display: "inline-block", marginLeft: 1 }}
+      >|</motion.span>
+    </>
+  );
+}
+
 function ProgressDots({ total, current }: { total: number; current: number }) {
   return (
     <div className="flex items-center gap-1">
@@ -722,11 +751,36 @@ function PenIcon({ tipColor, className, style }: { tipColor: string; className?:
 }
 
 function CharacterGhost({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  const eyeLookSequence = [
+    { x: 0, y: 0 },
+    { x: 1.8, y: -1.2 },
+    { x: 1.8, y: -1.2 },
+    { x: 0, y: 0 },
+    { x: -1.5, y: 0.8 },
+    { x: -1.5, y: 0.8 },
+    { x: 0.5, y: -1.5 },
+    { x: 0.5, y: -1.5 },
+    { x: 0, y: 0 },
+  ];
+  const eyeX = eyeLookSequence.map((p) => p.x);
+  const eyeY = eyeLookSequence.map((p) => p.y);
+
   return (
     <svg width="95" height="69" viewBox="0 0 95 69" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} style={style}>
       <path d="M53.8611 64.7226C53.7592 64.7226 40.0792 64.7226 21.4672 63.0045C16.2172 62.5198 20.554 57.8501 23.3628 55.5494C27.5439 52.1247 29.9975 50.316 31.2909 48.8207C34.3715 45.2591 23.6645 39.0692 22.5591 36.1027C21.8441 34.1836 22.9398 31.9757 24.597 29.8496C29.0383 24.1515 33.6534 23.0843 37.933 22.3856C43.6731 21.4486 48.2012 22.4395 49.5735 23.0338C52.6894 24.383 55.1542 28.498 57.2247 32.4556C59.5937 36.9838 57.4214 43.6403 55.4317 46.768C53.3263 50.0774 50.1613 50.0965 49.3476 50.6156C46.647 52.3385 56.9321 59.0064 60.8533 65.3302C61.0001 66.2845 60.1585 66.4953 59.0441 66.6039C57.9297 66.7125 56.568 66.7125 53.9135 65.7856" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M36.18 33.4395C36.18 33.4801 36.18 33.5207 36.1536 33.9244C36.1273 34.328 36.0746 35.0936 36.2422 35.7653C36.4099 36.437 36.7996 36.9917 37.2875 37.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M44.0476 32.9829V39.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      {/* 눈 — 시선이 이동하는 애니메이션 */}
+      <motion.g
+        animate={{ x: eyeX, y: eyeY }}
+        transition={{
+          duration: 5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: eyeLookSequence.map((_, i) => i / (eyeLookSequence.length - 1)),
+        }}
+      >
+        <path d="M36.18 33.4395C36.18 33.4801 36.18 33.5207 36.1536 33.9244C36.1273 34.328 36.0746 35.0936 36.2422 35.7653C36.4099 36.437 36.7996 36.9917 37.2875 37.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M44.0476 32.9829V39.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      </motion.g>
       <path d="M70.7085 24.6011C70.7085 24.6229 70.7085 24.6448 70.7085 26.7092C70.7085 28.7735 70.7085 32.8797 70.682 35.3327C70.6554 37.7857 70.6023 38.4611 70.5476 39.157" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M70.5476 32.9814C70.5476 32.9572 70.5476 32.933 71.7496 32.9085C72.9517 32.8839 75.3557 32.8597 76.9577 32.9206C78.5596 32.9815 79.2865 33.1283 80.5418 33.289" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M83.1256 23.9619C83.1256 24.0095 83.1256 24.0572 83.0752 26.7708C83.0248 29.4844 82.9241 34.8625 82.8016 38.0831C82.679 41.3038 82.5377 42.204 82.3921 43.9668" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
@@ -751,7 +805,7 @@ function MemoNoteSvg({
   borderColor = "#F5F5F5",
   glow = false,
 }: {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   borderColor?: string;
   glow?: boolean;
