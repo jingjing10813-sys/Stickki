@@ -274,6 +274,17 @@ export default function WhiteboardPage() {
     }
   }, [group, groupId, searchParams]);
 
+  // 콘솔에서 resetTutorial() 로 튜토리얼 재시작
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).resetTutorial = () => {
+      localStorage.removeItem(`tutorial_seen_${groupId}`);
+      tutorialShownRef.current = false;
+      setHatTapped(false);
+      setTutorialStep(0);
+    };
+    return () => { delete (window as unknown as Record<string, unknown>).resetTutorial; };
+  }, [groupId]);
+
   function advanceTutorial() {
     setTutorialStep((s) => (s === null || s >= 2 ? null : s + 1));
   }
