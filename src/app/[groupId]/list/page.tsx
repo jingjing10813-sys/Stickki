@@ -62,6 +62,13 @@ function MiniPostIt({ task }: { task: Task }) {
         boxShadow: "0 2px 10px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.5)",
       }}
     >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: 8,
+          background: "repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.05) 20px, rgba(0,0,0,0.05) 21px)",
+        }}
+      />
       {task.type === "note" && (
         <div className="absolute top-1 left-1/2 -translate-x-1/2">
           <svg width="8" height="12" viewBox="0 0 20 32" fill="none">
@@ -142,80 +149,53 @@ function PostItGridModal({ tasks, members, groupId, dateLabel, onClose }: GridMo
             const tilt = (i % 2 === 0 ? 1 : -1) * (2 + (i % 3));
 
             return (
-              <div key={task.id} style={{ padding: 12 }}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, rotate: tilt }}
-                animate={{ opacity: 1, scale: 1, rotate: tilt }}
-                whileTap={{ scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
-                onClick={() => router.push(`/${groupId}/${task.id}`)}
-                className="relative cursor-pointer flex flex-col"
-                style={{
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  backgroundColor: color,
-                  borderRadius: 18,
-                  padding: 14,
-                  boxShadow: "0 6px 20px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
-                  filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
-                }}
-              >
-                {/* 상단 행: 체크박스 + D+N 배지 */}
-                <div className="flex items-center justify-between">
-                  <div
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: 24, height: 24, borderRadius: 12,
-                      border: `2px solid ${isDone ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)"}`,
-                      backgroundColor: isDone ? "rgba(0,0,0,0.22)" : "transparent",
-                    }}
-                  >
-                    {isDone && (
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                    )}
-                  </div>
-
-                  {d > 0 && (
-                    <div
-                      className="flex items-center justify-center"
-                      style={{
-                        backgroundColor: "#FF6B35",
-                        borderRadius: 20,
-                        paddingLeft: 8, paddingRight: 8,
-                        paddingTop: 3, paddingBottom: 3,
-                        boxShadow: "0 2px 6px rgba(255,107,53,0.4)",
-                      }}
-                    >
-                      <span className="font-bold text-white" style={{ fontSize: 11 }}>D+{d}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 내용 */}
-                <p
-                  className="font-motto text-black/80 leading-snug flex-1 mt-2"
+              <div key={task.id} style={{ padding: 6 }}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, rotate: tilt }}
+                  animate={{ opacity: 1, scale: 1, rotate: tilt }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
+                  onClick={() => router.push(`/${groupId}/${task.id}`)}
+                  className="relative cursor-pointer flex flex-col"
                   style={{
-                    fontSize: task.content.length > 30 ? 11 : 13,
-                    textDecoration: isDone ? "line-through" : "none",
-                    overflow: "hidden",
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    backgroundColor: color,
+                    borderRadius: 18,
+                    padding: 14,
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
+                    filter: isDone ? "saturate(0.35) brightness(0.88)" : "none",
                   }}
                 >
-                  {task.content}
-                </p>
-
-                {/* 하단: 담당자 */}
-                {task.assignee_name && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="5.5" r="2.5" stroke="black" strokeOpacity="0.28" strokeWidth="1.3"/>
-                      <path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="black" strokeOpacity="0.28" strokeWidth="1.3" strokeLinecap="round"/>
-                    </svg>
-                    <span style={{ fontSize: 11, color: "rgba(0,0,0,0.38)" }}>{task.assignee_name}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className="flex items-center justify-center flex-shrink-0"
+                      style={{
+                        width: 22, height: 22, borderRadius: 11,
+                        border: `2px solid ${isDone ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)"}`,
+                        backgroundColor: isDone ? "rgba(0,0,0,0.22)" : "transparent",
+                      }}
+                    >
+                      {isDone && (
+                        <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {d > 0 && (
+                      <span className="text-black/40 text-[10px] font-sans">D+{d}</span>
+                    )}
                   </div>
-                )}
-              </motion.div>
+                  <p
+                    className="font-motto text-black/80 leading-snug flex-1"
+                    style={{
+                      textDecoration: isDone ? "line-through" : "none",
+                      fontSize: task.content.length > 30 ? "12px" : "14px",
+                    }}
+                  >
+                    {task.content}
+                  </p>
+                </motion.div>
               </div>
             );
           })}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -9,13 +9,11 @@ import type { Group, Member, Task } from "@/types";
 import { useTheme } from "@/lib/theme";
 import { Avatar } from "@/components/ui/Avatar";
 
-const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧","🦁","🐮","🐷","🐙","🦋","🐺","🦝"];
-const AVATAR_COLORS: Record<string, string> = {
-  "🐶": "#FF9F43", "🐱": "#FF9FF3", "🐻": "#C8A882", "🦊": "#FF6B6B",
-  "🐸": "#6BCB77", "🐼": "#A8A8A8", "🐨": "#B8C4D0", "🐯": "#FECA57",
-  "🐧": "#48DBFB", "🦁": "#FFD166", "🐮": "#E8D5B7", "🐷": "#FFB8C6",
-  "🐙": "#C77DFF", "🦋": "#54A0FF", "🐺": "#9EAAB5", "🦝": "#7B8FA1",
-};
+function isImageAvatar(avatar: string): boolean {
+  return avatar.startsWith("data:") || avatar.startsWith("http");
+}
+
+const PEN_COLORS = ["#000000", "#EF4444", "#3B82F6"];
 
 function ChevronRight() {
   return (
@@ -36,8 +34,14 @@ export default function MyPage() {
   const [me, setMe] = useState<Member | null>(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const [nameInput, setNameInput] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  const [editDrawColor, setEditDrawColor] = useState(PEN_COLORS[0]);
+  const [hasEditStrokes, setHasEditStrokes] = useState(false);
+  const editCanvasRef = useRef<HTMLCanvasElement>(null);
+  const editDrawingRef = useRef(false);
+  const editLastPointRef = useRef<{ x: number; y: number } | null>(null);
+
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
@@ -45,7 +49,6 @@ export default function MyPage() {
   useEffect(() => {
     if (!user || !profile) return;
     setNameInput(profile.name);
-    setSelectedAvatar(profile.avatar);
 
     supabase.from("groups").select("*").eq("id", groupId).single()
       .then(({ data }) => {
@@ -76,17 +79,93 @@ export default function MyPage() {
       });
   }, [groupId, user, profile]);
 
+  // 수정 모달이 열릴 때 현재 프로필 그림을 캔버스에 불러옴
+  useEffect(() => {
+    if (!showEditModal) return;
+    setSheetExpanded(false);
+    setHasEditStrokes(false);
+    setEditDrawColor(PEN_COLORS[0]);
+    const timer = setTimeout(() => {
+      const canvas = editCanvasRef.current;
+      if (!canvas) return;
+      // Retina 대응: 물리 픽셀 기준으로 캔버스 해상도 설정
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(278 * dpr);
+      canvas.height = Math.round(340 * dpr);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      // 이후 모든 드로잉 좌표는 CSS px 기준(0-278, 0-340)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (me?.avatar && isImageAvatar(me.avatar)) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, 278, 340);
+          setHasEditStrokes(true);
+        };
+        img.src = me.avatar;
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [showEditModal, me?.avatar]);
+
+  // 좌표를 CSS px 공간(0-278, 0-340)으로 변환 — DPR 무관
+  function editCanvasPos(e: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = editCanvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (278 / rect.width),
+      y: (e.clientY - rect.top) * (340 / rect.height),
+    };
+  }
+
+  function handleEditCanvasDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    editDrawingRef.current = true;
+    editLastPointRef.current = editCanvasPos(e);
+    setHasEditStrokes(true);
+  }
+
+  function handleEditCanvasMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!editDrawingRef.current) return;
+    const ctx = editCanvasRef.current?.getContext("2d");
+    if (!ctx || !editLastPointRef.current) return;
+    const pos = editCanvasPos(e);
+    ctx.strokeStyle = editDrawColor;
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(editLastPointRef.current.x, editLastPointRef.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    editLastPointRef.current = pos;
+  }
+
+  function handleEditCanvasUp() {
+    editDrawingRef.current = false;
+    editLastPointRef.current = null;
+  }
+
+  function clearEditCanvas() {
+    const canvas = editCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) ctx.clearRect(0, 0, 278, 340); // CSS px 기준
+    setHasEditStrokes(false);
+  }
+
   async function handleSave() {
     if (!group || !me || !user || !nameInput.trim()) return;
     const oldName = me.name;
     const newName = nameInput.trim();
-    const newColor = AVATAR_COLORS[selectedAvatar] ?? me.color;
 
-    await supabase.from("profiles").update({ name: newName, avatar: selectedAvatar, color: newColor }).eq("id", user.id);
+    const canvas = editCanvasRef.current;
+    const newAvatar = canvas && hasEditStrokes ? canvas.toDataURL("image/png") : me.avatar;
+    const newColor = me.color;
+
+    await supabase.from("profiles").update({ name: newName, avatar: newAvatar, color: newColor }).eq("id", user.id);
     await refreshProfile();
 
     const updatedMembers = (group.members ?? []).map((m) =>
-      m.id === user.id ? { ...m, name: newName, avatar: selectedAvatar, color: newColor } : m
+      m.id === user.id ? { ...m, name: newName, avatar: newAvatar, color: newColor } : m
     );
     const { data } = await supabase.from("groups").update({ members: updatedMembers })
       .eq("id", group.id).select().single();
@@ -153,7 +232,7 @@ export default function MyPage() {
             <path d="M8 2L2 8L8 14" stroke="currentColor" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </motion.button>
-        <span className="font-display font-bold t-text text-sm">마이페이지</span>
+        <span className="font-display font-bold t-text text-base">마이페이지</span>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={toggle}
@@ -189,7 +268,7 @@ export default function MyPage() {
             </motion.div>
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => { setNameInput(me.name); setSelectedAvatar(me.avatar); setShowEditModal(true); }}
+              onClick={() => { setNameInput(me.name); setShowEditModal(true); }}
               className="absolute bottom-0 right-0 rounded-full flex items-center justify-center"
               style={{ width: 28, height: 28, backgroundColor: "#E5E5E5" }}
             >
@@ -205,18 +284,20 @@ export default function MyPage() {
         {/* ── 통계 row ── */}
         <div className="flex" style={{ gap: 10 }}>
           {[
-            { label: "진행중", count: pendingTasks.length },
-            { label: "완료",   count: doneTasks.length },
-            { label: "받은 쪽지", count: receivedNotes.length },
+            { label: "진행중",   count: pendingTasks.length,   tab: "todo" },
+            { label: "완료",     count: doneTasks.length,       tab: "done" },
+            { label: "받은 쪽지", count: receivedNotes.length,  tab: "note" },
           ].map((stat) => (
-            <div
+            <motion.button
               key={stat.label}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => router.push(`/${groupId}/list?filter=${stat.tab}`)}
               className="flex-1 flex flex-col items-center"
-              style={{ backgroundColor: "rgba(228, 228, 231, 0.5)", borderRadius: 10, padding: "14px 10px", gap: 6 }}
+              style={{ backgroundColor: "rgba(228, 228, 231, 0.5)", borderRadius: 10, padding: "16px 10px", gap: 6 }}
             >
               <p className="font-bold text-xl t-text leading-none">{stat.count}</p>
-              <p className="text-xs" style={{ color: "#71717A" }}>{stat.label}</p>
-            </div>
+              <p className="text-sm" style={{ color: "#71717A" }}>{stat.label}</p>
+            </motion.button>
           ))}
         </div>
 
@@ -301,7 +382,7 @@ export default function MyPage() {
 
       </div>
 
-      {/* 정보 수정 모달 */}
+      {/* 프로필 수정 모달 — 어두운 드로잉 패널 스타일 */}
       <AnimatePresence>
         {showEditModal && (
           <motion.div
@@ -310,80 +391,136 @@ export default function MyPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end justify-center"
           >
-            <div
-              className="absolute inset-0"
-              style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.4)" }}
-              onClick={() => setShowEditModal(false)}
-            />
+            <div className="absolute inset-0" onClick={() => setShowEditModal(false)} />
             <motion.div
+              layout
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 40 }}
-              className="relative w-full max-w-lg t-elevated rounded-t-3xl pt-3 pb-10 px-5 z-10"
-              style={{ boxShadow: "0 -20px 60px rgba(0,0,0,0.3)" }}
+              transition={{
+                layout: { type: "spring", stiffness: 320, damping: 38 },
+                y: { type: "spring", stiffness: 380, damping: 40 },
+              }}
+              className="relative w-full max-w-lg rounded-t-3xl pt-3 z-10"
+              style={{ backgroundColor: "#27272A", boxShadow: "0 -20px 60px rgba(0,0,0,0.5)" }}
             >
-              <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "var(--border-mid)" }} />
+              {/* drag handle */}
+              <div className="rounded-full mx-auto" style={{ width: 70, height: 6, backgroundColor: "rgba(255,255,255,0.3)", marginBottom: 20 }} />
 
-              <div className="flex justify-center mb-5">
-                <motion.div
-                  key={selectedAvatar}
-                  initial={{ scale: 0.7 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
+              {/* 이름 입력 */}
+              <div className="flex items-center mx-5 rounded-2xl px-4" style={{ backgroundColor: "rgba(255,255,255,0.08)", height: 52, marginBottom: 20 }}>
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                  className="flex-1 bg-transparent outline-none text-sm font-medium"
+                  style={{ color: "#FFFFFF" }}
+                  placeholder="이름"
+                />
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                  <path d="M11.2502 5.41671L14.5835 8.75004M3.3335 16.6668H6.66683L15.4168 7.91676C15.6357 7.69789 15.8093 7.43805 15.9278 7.15208C16.0462 6.86612 16.1072 6.55962 16.1072 6.25009C16.1072 5.94056 16.0462 5.63406 15.9278 5.3481C15.8093 5.06213 15.6357 4.80229 15.4168 4.58342C15.198 4.36455 14.9381 4.19094 14.6522 4.07248C14.3662 3.95403 14.0597 3.89307 13.7502 3.89307C13.4406 3.89307 13.1341 3.95403 12.8482 4.07248C12.5622 4.19094 12.3024 4.36455 12.0835 4.58342L3.3335 13.3334V16.6668Z" stroke="rgba(255,255,255,0.4)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+
+              {/* ─── 드로잉 영역 (온보딩 sheetLevel 1↔2 동일 패턴) ─── */}
+              <div
+                className="w-full flex items-center justify-center"
+                style={{
+                  flexDirection: sheetExpanded ? "column" : "row",
+                  gap: sheetExpanded ? 0 : 24,
+                  marginTop: sheetExpanded ? 16 : 24,
+                  paddingLeft: 16,
+                  paddingRight: 16,
+                }}
+              >
+                {/* 펜 버튼: 축소=세로, 확장=가로 */}
+                <div
+                  className="flex"
                   style={{
-                    background: (AVATAR_COLORS[selectedAvatar] ?? me.color) + "88",
-                    boxShadow: `0 4px 20px ${(AVATAR_COLORS[selectedAvatar] ?? me.color)}44`,
+                    flexDirection: sheetExpanded ? "row" : "column",
+                    gap: sheetExpanded ? 32 : 16,
+                    marginBottom: sheetExpanded ? 20 : 0,
                   }}
                 >
-                  {selectedAvatar}
-                </motion.div>
-              </div>
+                  {PEN_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => { setEditDrawColor(c); setSheetExpanded(true); }}
+                      className="flex items-center justify-center rounded-full"
+                      style={{
+                        width: 52,
+                        height: 48,
+                        backgroundColor: (sheetExpanded && editDrawColor === c) ? "rgba(255,255,255,0.15)" : "transparent",
+                      }}
+                    >
+                      <EditPenIcon tipColor={c} />
+                    </button>
+                  ))}
+                </div>
 
-              <div className="grid grid-cols-8 gap-1.5 mb-5">
-                {AVATARS.map((av) => (
-                  <motion.button
-                    key={av}
-                    whileTap={{ scale: 0.85 }}
-                    onClick={() => setSelectedAvatar(av)}
-                    className="w-full aspect-square rounded-xl flex items-center justify-center text-xl"
+                {/* 캔버스: 축소=180×220, 확장=278×340 */}
+                <div
+                  className="relative"
+                  style={{
+                    width: sheetExpanded ? 278 : 180,
+                    height: sheetExpanded ? 340 : 220,
+                    flexShrink: 0,
+                  }}
+                >
+                  <canvas
+                    ref={editCanvasRef}
+                    width={278}
+                    height={340}
+                    onPointerDown={handleEditCanvasDown}
+                    onPointerMove={handleEditCanvasMove}
+                    onPointerUp={handleEditCanvasUp}
+                    onPointerLeave={handleEditCanvasUp}
                     style={{
-                      background: selectedAvatar === av ? "var(--card-hover)" : "var(--card)",
-                      boxShadow: selectedAvatar === av ? "0 0 0 2px var(--btn-primary-bg)" : "none",
+                      width: "100%",
+                      height: "100%",
+                      touchAction: "none",
+                      backgroundColor: "#fff",
+                      borderRadius: 8,
+                      display: "block",
                     }}
-                  >
-                    {av}
+                  />
+                  {!hasEditStrokes && (
+                    <p
+                      className="absolute inset-0 flex items-center justify-center text-sm pointer-events-none"
+                      style={{ color: "#CECECE" }}
+                    >
+                      여기에 그려주세요
+                    </p>
+                  )}
+                  {hasEditStrokes && (
+                    <button
+                      onClick={clearEditCanvas}
+                      className="absolute flex items-center justify-center rounded-full"
+                      style={{ top: 8, left: 8, width: 24, height: 24, backgroundColor: "rgba(0,0,0,0.08)" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path d="M2 2L12 12M12 2L2 12" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* 확인(저장) 버튼: 확장 시 캔버스 우측 하단 */}
+                {sheetExpanded ? (
+                  <div className="flex justify-end" style={{ width: 278, marginTop: 12, marginBottom: 40 }}>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={handleSave} disabled={!nameInput.trim()} className="disabled:opacity-30">
+                      <EditCheckIcon />
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={handleSave} disabled={!nameInput.trim()} className="disabled:opacity-30">
+                    <EditCheckIcon />
                   </motion.button>
-                ))}
+                )}
               </div>
 
-              <p className="t-text font-semibold text-sm mb-2">이름</p>
-              <input
-                autoFocus
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                className="w-full t-card rounded-2xl px-4 py-3 t-text text-sm outline-none mb-4"
-                style={{ border: "1px solid var(--border-color)" }}
-              />
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 py-3.5 rounded-2xl t-btn-secondary font-semibold text-sm"
-                >
-                  취소
-                </button>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleSave}
-                  disabled={!nameInput.trim()}
-                  className="flex-1 py-3.5 rounded-2xl t-btn-primary font-semibold text-sm disabled:opacity-30"
-                >
-                  저장
-                </motion.button>
-              </div>
+              <div style={{ height: sheetExpanded ? 0 : 32 }} />
             </motion.div>
           </motion.div>
         )}
@@ -495,5 +632,24 @@ export default function MyPage() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+function EditPenIcon({ tipColor }: { tipColor: string }) {
+  return (
+    <svg width="52" height="48" viewBox="0 0 52 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13.2618 25.8279C12.5517 24.9817 12.6621 23.7202 13.5083 23.0102L35.7236 4.36935C36.5697 3.65934 37.8312 3.76971 38.5412 4.61586L46.8975 14.5744C47.6075 15.4206 47.4971 16.6821 46.6509 17.3921L24.4357 36.0329C23.5895 36.7429 22.328 36.6326 21.618 35.7864L13.2618 25.8279Z" fill="#D9D9D9" />
+      <path d="M38.386 4.74611C37.676 3.89996 37.7864 2.63845 38.6325 1.92845L39.3985 1.28566C40.2447 0.575659 41.5062 0.686026 42.2162 1.53218L50.5725 11.4908C51.2825 12.3369 51.1721 13.5984 50.3259 14.3084L49.5599 14.9512C48.7137 15.6612 47.4522 15.5508 46.7422 14.7047L38.386 4.74611Z" fill={tipColor} />
+      <path d="M6.4807 41.2827C5.73346 41.4397 5.10707 40.6932 5.39148 39.9846L11.3478 25.1438C11.6147 24.4788 12.495 24.3443 12.9593 24.8976L22.6526 36.4497C23.1169 37.003 22.8316 37.8466 22.1303 37.994L6.4807 41.2827Z" fill={tipColor} />
+    </svg>
+  );
+}
+
+function EditCheckIcon() {
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="44" height="44" rx="22" fill="#D1D1D1" fillOpacity="0.4" />
+      <path d="M15 22L20 27L30 17" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

@@ -10,6 +10,15 @@ import ReactionPicker from "./ReactionPicker";
 import { Avatar } from "./Avatar";
 
 // yellow/purple/blue/green/red/gray — 전부 Tailwind -100 톤 (fill), stroke는 대응하는 -50 톤
+export const COLOR_STROKE: Record<string, string> = {
+  "#FEF9C3": "#FEFCE8", // yellow-100 → yellow-50
+  "#F3E8FF": "#FAF5FF", // purple-100 → purple-50
+  "#DBEAFE": "#EFF6FF", // blue-100 → blue-50
+  "#DCFCE7": "#F0FDF4", // green-100 → green-50
+  "#FEE2E2": "#FFF1F2", // red-100 → red-50
+  "#F3F4F6": "#F9FAFB", // gray-100 → gray-50
+};
+
 export const TODO_COLORS = [
   "#FEF9C3", "#F3E8FF", "#FEF9C3", "#DBEAFE",
   "#DCFCE7", "#FEE2E2", "#FEF9C3", "#F3F4F6",
@@ -19,15 +28,6 @@ export const NOTE_COLORS = [
   "#FEF9C3", "#FEE2E2", "#DBEAFE",
   "#DCFCE7", "#F3E8FF", "#F3F4F6", "#FEF9C3",
 ];
-
-const COLOR_STROKE: Record<string, string> = {
-  "#FEF9C3": "#FEFCE8", // yellow
-  "#F3E8FF": "#FAF5FF", // purple
-  "#DBEAFE": "#EFF6FF", // blue
-  "#DCFCE7": "#F0FDF4", // green
-  "#FEE2E2": "#FEF2F2", // red
-  "#F3F4F6": "#F9FAFB", // gray
-};
 
 // Stable references prevent framer-motion from restarting animations on re-render
 const SWAP_SCALE = [0.82, 1.06, 1];

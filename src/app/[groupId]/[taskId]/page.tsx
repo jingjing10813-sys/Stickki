@@ -175,7 +175,7 @@ export default function TaskDetailPage() {
           </svg>
         </motion.button>
 
-        <span className="font-display font-semibold text-white/90 text-sm">
+        <span className="font-display font-semibold text-white/90 text-base">
           {isTodo ? "할일" : "쪽지"}
         </span>
 
@@ -208,8 +208,7 @@ export default function TaskDetailPage() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.04) 23px, rgba(0,0,0,0.04) 24px)",
-              opacity: 0.5,
+              background: "repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.05) 20px, rgba(0,0,0,0.05) 21px)",
             }}
           />
           <div className="relative p-4 h-full flex flex-col">
