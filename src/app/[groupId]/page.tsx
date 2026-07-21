@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, notFound } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -11,6 +11,7 @@ import MemberBar from "@/components/ui/MemberBar";
 import AddTaskModal from "@/components/modals/AddTaskModal";
 import { Avatar } from "@/components/ui/Avatar";
 import { StickkiLogo } from "@/components/ui/StickkiLogos";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 const AVATARS = ["🐶","🐱","🐻","🦊","🐸","🐼","🐨","🐯","🐧","🦁","🐮","🐷","🐙","🦋","🐺","🦝"];
 const MEMBER_COLORS = ["#FF6B6B","#FF9F43","#FECA57","#48DBFB","#FF9FF3","#54A0FF","#5F27CD","#01CBC6"];
@@ -76,6 +77,7 @@ export default function WhiteboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
 
   const [group, setGroup] = useState<Group | null>(null);
+  const [groupNotFound, setGroupNotFound] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingMotto, setEditingMotto] = useState(false);
@@ -262,7 +264,10 @@ export default function WhiteboardPage() {
 
     supabase.from("groups").select("*").eq("id", groupId).single()
       .then(async ({ data }) => {
-        if (!data) return;
+        if (!data) {
+          setGroupNotFound(true);
+          return;
+        }
         const alreadyMember = (data.members ?? []).some((m: Member) => m.id === user.id);
         if (!alreadyMember) {
           const newMember: Member = {
@@ -456,12 +461,12 @@ export default function WhiteboardPage() {
     );
   }
 
+  if (groupNotFound) {
+    notFound();
+  }
+
   if (!group) {
-    return (
-      <main className="min-h-screen dot-pattern flex items-center justify-center">
-        <span className="t-text-faint text-sm">불러오는 중...</span>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   return (
