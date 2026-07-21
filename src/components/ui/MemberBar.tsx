@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Member } from "@/types";
+import { Avatar } from "./Avatar";
 
 function getInitial(name: string) {
   return name.trim().slice(0, 1).toUpperCase();
@@ -76,17 +77,18 @@ export default function MemberBar({ members, inviteCode, onRemove }: MemberBarPr
                 transition={{ type: "spring", stiffness: 400, damping: 28, delay: i * 0.05 }}
                 whileHover={{ y: -4, zIndex: 10, transition: { duration: 0.15 } }}
                 onClick={() => setShowDetail(!showDetail)}
-                className="relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm select-none"
+                className="relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm select-none overflow-hidden"
                 style={{
-                  backgroundColor: member.color,
-                  color: "#ffffff",
+                  backgroundColor: "#FFFFFF",
+                  border: "1.5px solid #E5E5E5",
+                  color: member.color,
                   marginLeft: i === 0 ? 0 : -10,
-                  boxShadow: `0 0 0 2.5px var(--bg), 0 2px 8px rgba(0,0,0,0.2)`,
+                  boxShadow: `0 0 0 2.5px var(--bg), 0 2px 8px rgba(0,0,0,0.1)`,
                   zIndex: members.length - i,
                 }}
                 title={member.name}
               >
-                {member.avatar ?? getInitial(member.name)}
+                <Avatar avatar={member.avatar} fallback={getInitial(member.name)} size={40} />
               </motion.button>
             ))}
           </AnimatePresence>
@@ -157,10 +159,10 @@ export default function MemberBar({ members, inviteCode, onRemove }: MemberBarPr
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
                   <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0"
-                    style={{ backgroundColor: member.color + "99" }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0 overflow-hidden"
+                    style={{ backgroundColor: "#FFFFFF", border: "1.5px solid #E5E5E5" }}
                   >
-                    {member.avatar ?? getInitial(member.name)}
+                    <Avatar avatar={member.avatar} fallback={getInitial(member.name)} size={28} />
                   </div>
                   <span className="t-text text-sm flex-1">{member.name}</span>
                   <button
