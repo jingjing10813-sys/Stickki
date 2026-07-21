@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Task, Member } from "@/types";
@@ -249,6 +249,8 @@ export default function WhiteboardPage() {
   const [setupLoading, setSetupLoading] = useState(false);
 
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+  const hatAnimControls = useAnimation();
+  const [hatTapped, setHatTapped] = useState(false);
 
   // 마지막 방 저장
   useEffect(() => {
@@ -272,6 +274,22 @@ export default function WhiteboardPage() {
 
   function advanceTutorial() {
     setTutorialStep((s) => (s === null || s >= 2 ? null : s + 1));
+  }
+
+  function handleTutorialClick() {
+    if (tutorialStep === 0) {
+      if (hatTapped) return;
+      setHatTapped(true);
+      hatAnimControls.start({
+        x: 0, y: 0, rotate: 62.06 + 360,
+        transition: { type: "spring", stiffness: 80, damping: 16 },
+      });
+      setTimeout(advanceTutorial, 1000);
+    } else if (tutorialStep === 1) {
+      // TutorialStep1 내부에서 직접 처리 (stopPropagation + 캐릭터 애니메이션)
+    } else {
+      advanceTutorial();
+    }
   }
 
   useEffect(() => {
@@ -665,7 +683,7 @@ export default function WhiteboardPage() {
             className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-center pointer-events-none"
             style={{
               height: 130,
-              background: "linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.65) 55%, transparent 100%)",
+              background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0) 100%)",
             }}
           >
             <motion.div
@@ -682,27 +700,21 @@ export default function WhiteboardPage() {
                 animate={isOverTrash ? { rotate: [-4, 4, -4, 0] } : { rotate: 0 }}
                 transition={isOverTrash ? { duration: 0.35, ease: "easeInOut" } : {}}
               >
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={{ color: "#EF4444" }}>
                   <path
-                    d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                    stroke={isOverTrash ? "#FF3B30" : "#FF6B6B"}
-                    strokeWidth={isOverTrash ? "2.4" : "1.9"}
+                    d="M4 7H20M10 11V17M14 11V17M5 7L6 19C6 19.5304 6.21071 20.0391 6.58579 20.4142C6.96086 20.7893 7.46957 21 8 21H16C16.5304 21 17.0391 20.7893 17.4142 20.4142C17.7893 20.0391 18 19.5304 18 19L19 7M9 7V4C9 3.73478 9.10536 3.48043 9.29289 3.29289C9.48043 3.10536 9.73478 3 10 3H14C14.2652 3 14.5196 3.10536 14.7071 3.29289C14.8946 3.48043 15 3.73478 15 4V7"
+                    stroke="currentColor"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                  />
-                  <path
-                    d="M10 11v6M14 11v6"
-                    stroke={isOverTrash ? "#FF3B30" : "#FF6B6B"}
-                    strokeWidth={isOverTrash ? "2.4" : "1.9"}
-                    strokeLinecap="round"
                   />
                 </svg>
               </motion.div>
               <span
                 className="text-xs font-medium"
-                style={{ color: isOverTrash ? "#FF3B30" : "rgba(255,255,255,0.45)" }}
+                style={{ color: "#EF4444" }}
               >
-                {isOverTrash ? "놓으면 삭제" : "여기로 끌어오면 삭제"}
+                놓으면 삭제됩니다
               </span>
             </motion.div>
           </motion.div>
@@ -722,17 +734,36 @@ export default function WhiteboardPage() {
             key="tutorial-overlay"
             className="fixed inset-0"
             style={{ zIndex: 55 }}
-            onClick={advanceTutorial}
+            onClick={handleTutorialClick}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
+            {/* 모자 — step 0~2 내내 유지 (AnimatePresence 밖에서 렌더링) */}
+            {tutorialStep !== null && (
+              <motion.div
+                animate={hatAnimControls}
+                initial={{ x: -160, y: -364, rotate: 62.06 }}
+                style={{
+                  position: "fixed",
+                  bottom: 51,
+                  right: 24.86,
+                  width: 21.6,
+                  height: 50.4,
+                  transformOrigin: "0 0",
+                }}
+              >
+                <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="18" height="42" fill="#D9D9D9" fillOpacity="0.4"/>
+                </svg>
+              </motion.div>
+            )}
             <AnimatePresence mode="wait">
               {tutorialStep === 0 && (
                 <TutorialStep0 key="t0" userName={profile?.name ?? ""} />
               )}
               {tutorialStep === 1 && (
-                <TutorialStep1 key="t1" />
+                <TutorialStep1 key="t1" onAdvance={advanceTutorial} />
               )}
               {tutorialStep === 2 && (
                 <TutorialStep2 key="t2" />
@@ -799,27 +830,40 @@ function TutorialStep0({ userName }: { userName: string }) {
           <path d="M18.4673 61.0045C37.0793 62.7226 50.7593 62.7226 50.8613 62.7226C53.5158 63.6495 54.9298 64.7125 56.0442 64.6039C57.1586 64.4953 58.0002 64.2845 57.8534 63.3302C53.9322 57.0064 43.6472 50.3385 46.3477 48.6156C47.1614 48.0965 50.3264 48.0774 52.4318 44.768C54.4215 41.6403 56.5938 34.9838 54.2248 30.4556C52.1544 26.498 49.6895 22.383 46.5737 21.0338C45.2014 20.4395 40.6732 19.4486 34.9331 20.3856C30.6535 21.0843 26.0385 22.1515 21.5971 27.8496C19.9399 29.9757 18.8442 32.1836 19.5593 34.1027C20.6646 37.0692 31.3716 43.2591 28.291 46.8207C26.9976 48.316 24.5441 50.1247 20.3629 53.5494C17.5541 55.8501 13.2173 60.5198 18.4673 61.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M33.1801 31.4395C33.1801 31.4801 33.1801 31.5207 33.1537 31.9244C33.1274 32.328 33.0747 33.0936 33.2424 33.7653C33.4101 34.437 33.7997 34.9917 34.2876 35.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M41.0477 30.9829V37.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          <rect x="37.1364" width="18" height="42.0361" transform="rotate(62.06 37.1364 0)" fill="#D9D9D9" fillOpacity="0.4"/>
         </svg>
       </div>
     </motion.div>
   );
 }
 
-function TutorialStep1() {
+function TutorialStep1({ onAdvance }: { onAdvance: () => void }) {
+  const [exiting, setExiting] = useState(false);
+
+  function handleClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (exiting) return;
+    setExiting(true);
+    setTimeout(onAdvance, 780);
+  }
+
   return (
     <motion.div
       className="fixed inset-0"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
+      onClick={handleClick}
     >
       {/* 말풍선02 + 캐릭터02 — 화면 중앙 */}
       <div className="fixed inset-0 flex items-center justify-center" style={{ paddingTop: 80, paddingBottom: 140 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
           {/* 말풍선02 */}
-          <div style={{ position: "relative", width: 160, height: 120, marginLeft: 40 }}>
+          <motion.div
+            animate={{ opacity: exiting ? 0 : 1, y: exiting ? -16 : 0 }}
+            transition={{ duration: 0.22 }}
+            style={{ position: "relative", width: 160, height: 120, marginLeft: 40 }}
+          >
             <svg width="160" height="120" viewBox="0 0 108 81" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M39.4973 63.6472C39.4973 63.8086 39.4429 68.5602 39.3738 75.8213C39.3491 78.4139 39.3859 78.7894 41.2544 77.0314C47.0427 71.5857 51.4451 66.0959 52.8027 63.9775C53.3606 63.1068 53.6893 62.6745 54.2555 62.4522C55.5456 61.9457 58.6639 62.6185 63.2907 63.2597C68.2261 63.9437 74.2548 63.5231 80.834 62.4575C84.0891 61.9302 86.9851 60.4819 89.8048 58.584C92.6246 56.6862 95.2318 54.1403 97.2804 51.7022C101.03 47.2397 102.853 43.1115 104.144 38.344C106.244 30.5893 105.78 24.1228 104.802 20.9683C102.2 12.578 95.6674 10.7978 92.2616 9.13827C90.1472 8.10803 87.0594 7.10982 79.2437 5.85177C71.4279 4.59373 58.9294 3.21192 50.0194 2.5356C41.1093 1.85927 36.1664 1.9303 32.3386 2.16959C25.9279 2.57036 21.656 3.84495 18.5231 5.20122C15.6088 6.46286 12.1174 9.93599 8.24523 13.7572C4.59008 17.3643 3.44262 21.309 2.28344 27.6485C1.86386 29.9431 1.93414 33.0236 2.33635 36.4407C3.18184 43.6238 5.36288 48.9324 6.90416 51.8768C8.30482 54.5526 10.9874 56.622 13.6387 58.7345C18.5632 62.6582 24.4977 63.4831 27.6727 64.3863C29.444 64.7855 32.9608 64.9961 37.0263 64.9822C38.5324 64.9416 38.9078 64.8327 39.5378 64.6381"
@@ -844,25 +888,27 @@ function TutorialStep1() {
             }}>
               오 내 모자!
             </div>
-          </div>
-          {/* 캐릭터02 */}
-          <svg width="55" height="63" viewBox="0 0 48 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4.11963 52.0322C22.6199 43.0322 36.8794 47.755 36.9813 47.755C39.6358 48.6819 41.0499 49.7449 42.1643 49.6363C43.2787 49.5277 44.1203 49.3168 43.9735 48.3626C40.0523 42.0388 29.7672 35.3708 32.4678 33.648C33.2815 33.1289 36.4465 33.1098 38.5519 29.8004C40.5416 26.6727 47.0015 15.9824 44.6325 11.4542C42.562 7.4966 40.0972 3.38159 36.9813 2.03235C35.609 1.43811 25.4061 9.27535 21.0532 5.41802C14.4111 -0.467773 12.1585 7.1839 7.71717 12.882C6.05995 15.0081 4.96428 17.216 5.67933 19.1351C6.78466 22.1016 17.4917 28.2915 14.4111 31.8531C13.1177 33.3484 10.6641 35.1571 6.48302 38.5818C3.67416 40.8825 -0.62146 54.3387 4.11963 52.0322Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M18.2998 16.4717C18.2998 16.5123 18.2998 16.5529 18.2735 16.9566C18.2471 17.3603 18.1944 18.1258 18.3621 18.7975C18.5298 19.4692 18.9195 20.0239 19.4074 20.7761" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M26.1675 16.0151V22.5865" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          </motion.div>
+          {/* 캐릭터02 — 탭하면 FAB 방향으로 이동하며 사라짐 */}
+          <motion.div
+            animate={{
+              x: exiting ? 145 : 0,
+              y: exiting ? 330 : 0,
+              opacity: exiting ? 0 : 1,
+            }}
+            transition={{
+              x: { duration: 0.7, ease: [0.4, 0, 1, 1] },
+              y: { duration: 0.7, ease: [0.4, 0, 1, 1] },
+              opacity: { duration: 0.35, ease: "easeIn", delay: 0.4 },
+            }}
+          >
+            <svg width="55" height="63" viewBox="0 0 48 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4.11963 52.0322C22.6199 43.0322 36.8794 47.755 36.9813 47.755C39.6358 48.6819 41.0499 49.7449 42.1643 49.6363C43.2787 49.5277 44.1203 49.3168 43.9735 48.3626C40.0523 42.0388 29.7672 35.3708 32.4678 33.648C33.2815 33.1289 36.4465 33.1098 38.5519 29.8004C40.5416 26.6727 47.0015 15.9824 44.6325 11.4542C42.562 7.4966 40.0972 3.38159 36.9813 2.03235C35.609 1.43811 25.4061 9.27535 21.0532 5.41802C14.4111 -0.467773 12.1585 7.1839 7.71717 12.882C6.05995 15.0081 4.96428 17.216 5.67933 19.1351C6.78466 22.1016 17.4917 28.2915 14.4111 31.8531C13.1177 33.3484 10.6641 35.1571 6.48302 38.5818C3.67416 40.8825 -0.62146 54.3387 4.11963 52.0322Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18.2998 16.4717C18.2998 16.5123 18.2998 16.5529 18.2735 16.9566C18.2471 17.3603 18.1944 18.1258 18.3621 18.7975C18.5298 19.4692 18.9195 20.0239 19.4074 20.7761" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M26.1675 16.0151V22.5865" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </motion.div>
         </div>
-      </div>
-      {/* 모자 — FAB 우상단 꼭짓점 기준, transform-origin 좌상단으로 62.06도 회전 */}
-      <div style={{
-        position: "fixed", bottom: 51, right: 24.86,
-        width: 21.6, height: 50.4,
-        transform: "rotate(62.06deg)",
-        transformOrigin: "0 0",
-      }}>
-        <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="18" height="42" fill="#D9D9D9" fillOpacity="0.4"/>
-        </svg>
       </div>
     </motion.div>
   );
@@ -895,7 +941,7 @@ function TutorialStep2() {
         viewBox="0 0 99 219"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ position: "absolute", left: 260, top: 592 }}
+        style={{ position: "absolute", left: 264, top: 606 }}
       >
         {segments.map((d, i) => {
           const t = i / (segments.length - 1);
