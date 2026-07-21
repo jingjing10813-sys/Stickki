@@ -142,7 +142,7 @@ export default function RoomInfoPage() {
             {(group.members ?? []).map((member: Member) => (
               <div
                 key={member.id}
-                className="flex items-center gap-3 rounded-2xl py-3"
+                className="flex items-center gap-3 rounded-2xl px-4 py-3"
                 style={{ backgroundColor: "var(--card)" }}
               >
                 <div

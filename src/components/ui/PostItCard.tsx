@@ -29,7 +29,6 @@ export const NOTE_COLORS = [
   "#DCFCE7", "#F3E8FF", "#F3F4F6", "#FEF9C3",
 ];
 
-// Stable references prevent framer-motion from restarting animations on re-render
 const SWAP_SCALE = [0.82, 1.06, 1];
 const DRAG_ROTATE_DELTA = 6;
 
@@ -85,6 +84,7 @@ interface PostItCardProps {
   onDragStart?: (id: string, clientX: number, clientY: number) => void;
   onLongPress?: (id: string) => void;
   onTap?: (id: string) => void;
+  onNoteOpen?: (id: string) => void;
 }
 
 function PostItCard({
@@ -103,6 +103,7 @@ function PostItCard({
   onDragStart,
   onLongPress,
   onTap,
+  onNoteOpen,
 }: PostItCardProps) {
   const isPinned = task.is_pinned ?? false;
   const [showPicker, setShowPicker] = useState(false);
@@ -129,8 +130,7 @@ function PostItCard({
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const longPressFiredRef = useRef(false);
 
-  // Stable delete rotation — deterministic from task.id to avoid re-render flicker
-  const deleteRotRef = useRef(task.rotation + (task.id.charCodeAt(0) % 2 === 0 ? 18 : -18));
+  const deleteRot = task.rotation + (task.id.charCodeAt(0) % 2 === 0 ? 18 : -18);
 
   async function handleToggleDone() {
     if (!isTodo) return;
@@ -157,6 +157,7 @@ function PostItCard({
       className="relative"
       style={{
         width: 148,
+        paddingBottom: 20,
         zIndex: showPicker ? 100 : isDropTarget ? 30 : isLongPressTarget ? 50 : undefined,
         pointerEvents: (isDragging || isBeingDeleted) ? "none" : undefined,
         touchAction: "none",
@@ -169,7 +170,6 @@ function PostItCard({
         longPressTimerRef.current = setTimeout(() => {
           longPressFiredRef.current = true;
           longPressTimerRef.current = null;
-          // 드래그는 유지 — 휴지통으로 끌 수 있도록
           onLongPress?.(task.id);
         }, 800);
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -213,7 +213,11 @@ function PostItCard({
         lastTapRef.current = now;
         singleTapTimerRef.current = setTimeout(() => {
           singleTapTimerRef.current = null;
-          onTap?.(task.id);
+          if (!isTodo) {
+            onNoteOpen?.(task.id);
+          } else {
+            onTap?.(task.id);
+          }
         }, 280);
       }}
     >
@@ -264,7 +268,7 @@ function PostItCard({
             ? {
                 opacity: 0,
                 y: 320,
-                rotate: deleteRotRef.current,
+                rotate: deleteRot,
                 scale: 0.55,
                 transition: { duration: 0.48, ease: [0.4, 0, 1, 1] },
               }

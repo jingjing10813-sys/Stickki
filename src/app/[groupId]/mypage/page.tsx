@@ -48,6 +48,7 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!user || !profile) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNameInput(profile.name);
 
     supabase.from("groups").select("*").eq("id", groupId).single()
