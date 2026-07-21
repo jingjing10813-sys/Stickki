@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter, notFound, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Group, Task, Member } from "@/types";
@@ -251,7 +251,6 @@ export default function WhiteboardPage() {
   const [setupLoading, setSetupLoading] = useState(false);
 
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
-  const hatAnimControls = useAnimation();
   const [hatTapped, setHatTapped] = useState(false);
 
   // 마지막 방 저장
@@ -282,10 +281,7 @@ export default function WhiteboardPage() {
     if (tutorialStep === 0) {
       if (hatTapped) return;
       setHatTapped(true);
-      hatAnimControls.start({
-        x: 0, y: 0, rotate: 62.06 + 360,
-        transition: { type: "spring", stiffness: 80, damping: 16 },
-      });
+      // 테이프는 layoutId 공유 애니메이션으로 머리 위→CTA까지 자동으로 날아감 (아래 렌더링부 참고)
       setTimeout(advanceTutorial, 1000);
     } else if (tutorialStep === 1) {
       // TutorialStep1 내부에서 직접 처리 (stopPropagation + 캐릭터 애니메이션)
@@ -744,21 +740,20 @@ export default function WhiteboardPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* 모자 — step 0~2 내내 유지 (AnimatePresence 밖에서 렌더링) */}
-            {tutorialStep !== null && (
+            {/* 테이프 — step0에서는 캐릭터 머리 위(TutorialStep0 내부)에 있다가, step1부터 여기 CTA 자리로 layoutId 공유 애니메이션으로 날아와 붙음 */}
+            {tutorialStep !== null && tutorialStep !== 0 && (
               <motion.div
-                animate={hatAnimControls}
-                initial={{ x: -160, y: -364, rotate: 62.06 }}
+                layoutId="tutorial-tape"
+                transition={{ type: "spring", stiffness: 80, damping: 16 }}
                 style={{
                   position: "fixed",
                   bottom: 51,
                   right: 24.86,
                   width: 21.6,
                   height: 50.4,
-                  transformOrigin: "0 0",
                 }}
               >
-                <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: "rotate(62.06deg)", transformOrigin: "0 0" }}>
                   <rect width="18" height="42" fill="#D9D9D9" fillOpacity="0.4"/>
                 </svg>
               </motion.div>
@@ -782,6 +777,26 @@ export default function WhiteboardPage() {
 }
 
 // ── 튜토리얼 헬퍼 컴포넌트 ──
+
+function TypewriterText({ text, speed = 45 }: { text: string; speed?: number }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    setCount(0);
+    const id = setInterval(() => {
+      setCount((c) => {
+        if (c >= text.length) {
+          clearInterval(id);
+          return c;
+        }
+        return c + 1;
+      });
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, speed]);
+
+  return <>{text.slice(0, count)}</>;
+}
 
 function TutorialSpeechBubble({ children }: { children: ReactNode }) {
   return (
@@ -818,26 +833,35 @@ function TutorialSpeechBubble({ children }: { children: ReactNode }) {
 
 function TutorialStep0({ userName }: { userName: string }) {
   return (
-    <motion.div
-      className="fixed inset-0 flex items-center justify-center"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      style={{ paddingTop: 80, paddingBottom: 140 }}
-    >
+    <div className="fixed inset-0 flex items-center justify-center" style={{ paddingTop: 80, paddingBottom: 140 }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
         <TutorialSpeechBubble>
-          {`하이 ${userName}\n우리집이 만들어졌어\n집을 한번 둘러봐 ~`}
+          <TypewriterText text={`하이 ${userName}\n우리집이 만들어졌어\n집을 한번 둘러봐 ~`} />
         </TutorialSpeechBubble>
-        {/* 포스트잇 캐릭터 */}
-        <svg width="72" height="81" viewBox="0 0 60 67" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18.4673 61.0045C37.0793 62.7226 50.7593 62.7226 50.8613 62.7226C53.5158 63.6495 54.9298 64.7125 56.0442 64.6039C57.1586 64.4953 58.0002 64.2845 57.8534 63.3302C53.9322 57.0064 43.6472 50.3385 46.3477 48.6156C47.1614 48.0965 50.3264 48.0774 52.4318 44.768C54.4215 41.6403 56.5938 34.9838 54.2248 30.4556C52.1544 26.498 49.6895 22.383 46.5737 21.0338C45.2014 20.4395 40.6732 19.4486 34.9331 20.3856C30.6535 21.0843 26.0385 22.1515 21.5971 27.8496C19.9399 29.9757 18.8442 32.1836 19.5593 34.1027C20.6646 37.0692 31.3716 43.2591 28.291 46.8207C26.9976 48.316 24.5441 50.1247 20.3629 53.5494C17.5541 55.8501 13.2173 60.5198 18.4673 61.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M33.1801 31.4395C33.1801 31.4801 33.1801 31.5207 33.1537 31.9244C33.1274 32.328 33.0747 33.0936 33.2424 33.7653C33.4101 34.437 33.7997 34.9917 34.2876 35.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M41.0477 30.9829V37.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        {/* 포스트잇 캐릭터 — 눈만 로딩화면처럼 움직임, 머리 위엔 테이프(아래 layoutId 공유 요소, step1에서 CTA로 날아감) */}
+        <div style={{ position: "relative" }}>
+          <motion.div
+            layoutId="tutorial-tape"
+            transition={{ type: "spring", stiffness: 80, damping: 16 }}
+            style={{ position: "absolute", top: -8, right: 10, width: 21.6, height: 50.4, zIndex: 1 }}
+          >
+            <svg width="21.6" height="50.4" viewBox="0 0 18 42" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: "rotate(62.06deg)", transformOrigin: "0 0" }}>
+              <rect width="18" height="42" fill="#D9D9D9" fillOpacity="0.4"/>
+            </svg>
+          </motion.div>
+          <svg width="72" height="81" viewBox="0 0 60 67" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.4673 61.0045C37.0793 62.7226 50.7593 62.7226 50.8613 62.7226C53.5158 63.6495 54.9298 64.7125 56.0442 64.6039C57.1586 64.4953 58.0002 64.2845 57.8534 63.3302C53.9322 57.0064 43.6472 50.3385 46.3477 48.6156C47.1614 48.0965 50.3264 48.0774 52.4318 44.768C54.4215 41.6403 56.5938 34.9838 54.2248 30.4556C52.1544 26.498 49.6895 22.383 46.5737 21.0338C45.2014 20.4395 40.6732 19.4486 34.9331 20.3856C30.6535 21.0843 26.0385 22.1515 21.5971 27.8496C19.9399 29.9757 18.8442 32.1836 19.5593 34.1027C20.6646 37.0692 31.3716 43.2591 28.291 46.8207C26.9976 48.316 24.5441 50.1247 20.3629 53.5494C17.5541 55.8501 13.2173 60.5198 18.4673 61.0045Z" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            <motion.g
+              animate={{ x: [-2, 2, -2] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <path d="M33.1801 31.4395C33.1801 31.4801 33.1801 31.5207 33.1537 31.9244C33.1274 32.328 33.0747 33.0936 33.2424 33.7653C33.4101 34.437 33.7997 34.9917 34.2876 35.7439" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M41.0477 30.9829V37.5543" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            </motion.g>
+          </svg>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -852,14 +876,7 @@ function TutorialStep1({ onAdvance }: { onAdvance: () => void }) {
   }
 
   return (
-    <motion.div
-      className="fixed inset-0"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.15 } }}
-      transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      onClick={handleClick}
-    >
+    <div className="fixed inset-0" onClick={handleClick}>
       {/* 말풍선02 + 캐릭터02 — 화면 중앙 */}
       <div className="fixed inset-0 flex items-center justify-center" style={{ paddingTop: 80, paddingBottom: 140 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
@@ -894,16 +911,23 @@ function TutorialStep1({ onAdvance }: { onAdvance: () => void }) {
               오 내 모자!
             </div>
           </motion.div>
-          {/* 캐릭터02 — 탭하면 FAB 방향으로 이동하며 사라짐 */}
+          {/* 캐릭터02 — 탭하면 통통 튀며 달려서 FAB 방향으로 사라짐 */}
           <motion.div
+            style={{ transformOrigin: "50% 100%" }}
             animate={{
               x: exiting ? 145 : 0,
               y: exiting ? 330 : 0,
+              scaleX: exiting ? [1, 1.2, 0.85, 1.15, 0.95, 1.05] : 1,
+              scaleY: exiting ? [1, 0.82, 1.15, 0.85, 1.08, 0.95] : 1,
+              rotate: exiting ? [0, 10, 16, 12, 9, 6] : 0,
               opacity: exiting ? 0 : 1,
             }}
             transition={{
               x: { duration: 0.7, ease: [0.4, 0, 1, 1] },
               y: { duration: 0.7, ease: [0.4, 0, 1, 1] },
+              scaleX: { duration: 0.7, ease: "easeInOut" },
+              scaleY: { duration: 0.7, ease: "easeInOut" },
+              rotate: { duration: 0.7, ease: "easeInOut" },
               opacity: { duration: 0.35, ease: "easeIn", delay: 0.4 },
             }}
           >
@@ -915,7 +939,7 @@ function TutorialStep1({ onAdvance }: { onAdvance: () => void }) {
           </motion.div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -933,13 +957,16 @@ function TutorialStep2() {
     "M96.7214 214L95.484 216.184",
   ];
 
+  // 다 나타난 뒤 몇 초 있다가 다시 옅어짐
+  const [faded, setFaded] = useState(false);
+  useEffect(() => {
+    const revealDone = segments.length * 0.1 + 0.25;
+    const t = setTimeout(() => setFaded(true), (revealDone + 1.8) * 1000);
+    return () => clearTimeout(t);
+  }, [segments.length]);
+
   return (
-    <motion.div
-      className="fixed inset-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <div className="fixed inset-0">
       <svg
         width="99"
         height="219"
@@ -961,12 +988,16 @@ function TutorialStep2() {
               strokeLinecap="round"
               strokeLinejoin="round"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.1, duration: 0.25, ease: "easeOut" }}
+              animate={{ opacity: faded ? 0 : 1 }}
+              transition={
+                faded
+                  ? { duration: 0.6, ease: "easeIn" }
+                  : { delay: i * 0.1, duration: 0.25, ease: "easeOut" }
+              }
             />
           );
         })}
       </svg>
-    </motion.div>
+    </div>
   );
 }

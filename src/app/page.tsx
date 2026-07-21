@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -22,6 +22,14 @@ function generateInviteCode(): string {
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <OnboardingPageInner />
+    </Suspense>
+  );
+}
+
+function OnboardingPageInner() {
   const router = useRouter();
   const { loading: authLoading, user, profile, refreshProfile, signOut } = useAuth();
   const searchParams = useSearchParams();
