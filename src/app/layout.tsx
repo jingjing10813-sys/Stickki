@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Urbanist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
@@ -13,6 +13,21 @@ const urbanist = Urbanist({
 export const metadata: Metadata = {
   title: "Stickki",
   description: "우리 사이, 더 끈끈하게.",
+  // 홈 화면 추가 시 브라우저 UI 없는 standalone 실행 (앱 체감 테스트용)
+  appleWebApp: {
+    capable: true,
+    title: "Stickki",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  // 노치 영역까지 화면을 채우고 safe-area-inset으로 여백 제어
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

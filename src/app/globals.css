@@ -156,3 +156,30 @@ textarea:-webkit-autofill:focus {
   background-color: rgba(0, 0, 0, 0.18);
   border-radius: 999px;
 }
+
+/* ── 앱(웹뷰) 네이티브 체감 보정 ── */
+html,
+body {
+  /* 화면 끝 고무줄 바운스/당겨서새로고침 차단 */
+  overscroll-behavior: none;
+}
+
+body {
+  /* 노치·홈바 안전영역 확보 (viewport-fit=cover와 세트) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  /* 탭 시 회색 하이라이트 제거 */
+  -webkit-tap-highlight-color: transparent;
+  /* 롱프레스 시 텍스트 선택·돋보기·콜아웃 메뉴 차단 (롱프레스 삭제와 충돌 방지) */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 입력 필드는 선택/복사 허용 유지 */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
