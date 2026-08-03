@@ -123,7 +123,7 @@ export default function ResetPasswordScreen() {
 
           {step === "code" && (
             <>
-              <Text style={styles.desc}>{email} 로 보낸 인증번호 6자리를 입력해주세요</Text>
+              <Text style={styles.desc}>{email} 로 보낸 인증번호를 입력해주세요</Text>
               <TextInput
                 style={styles.input}
                 value={code}
@@ -131,10 +131,10 @@ export default function ResetPasswordScreen() {
                   setCode(v);
                   setError("");
                 }}
-                placeholder="인증번호 6자리"
+                placeholder="인증번호 입력"
                 placeholderTextColor="#CECECE"
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={8}
                 autoFocus
               />
               <Primary

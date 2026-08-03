@@ -168,10 +168,10 @@ export default function SignupScreen() {
                     setOtpCode(v);
                     setOtpError("");
                   }}
-                  placeholder="인증번호 6자리"
+                  placeholder="인증번호 입력"
                   placeholderTextColor="#CECECE"
                   keyboardType="number-pad"
-                  maxLength={6}
+                  maxLength={8}
                 />
                 <Pressable
                   style={[styles.sideBtn, (otpCode.trim().length < 6 || verifyingOtp) && styles.disabled]}
