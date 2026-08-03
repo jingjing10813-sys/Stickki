@@ -152,6 +152,11 @@ export default function EmailLoginScreen() {
                 회원가입
               </Text>
             </Text>
+            <Text style={styles.signupRow}>
+              <Text style={styles.signupLink} onPress={() => router.push("/reset-password")}>
+                비밀번호를 잊으셨나요?
+              </Text>
+            </Text>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
