@@ -3,7 +3,12 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DotPattern } from "@/components/dot-pattern";
-import { AppleLogo, KakaoLogo } from "@/components/stickki-icons";
+import {
+  AppleLogo,
+  KakaoLogo,
+  StickkiCharacterNo,
+  StickkiWordmark,
+} from "@/components/stickki-icons";
 import { StickkiColors } from "@/constants/stickki-theme";
 
 const C = StickkiColors.light;
@@ -19,10 +24,13 @@ export default function LoginScreen() {
     <View style={styles.root}>
       <DotPattern />
       <SafeAreaView style={styles.safe}>
-        {/* 로고 영역 — 워드마크 SVG 포팅 전까지 텍스트 로고 */}
+        {/* 로고 + 오른쪽 끝에 걸친 캐릭터 (웹과 동일 배치) */}
         <View style={styles.logoArea}>
-          <Text style={styles.wordmark}>Stickki</Text>
+          <StickkiWordmark width={175} />
           <Text style={styles.tagline}>우리사이, 더 끈끈하게</Text>
+        </View>
+        <View style={styles.character} pointerEvents="none">
+          <StickkiCharacterNo size={47} />
         </View>
 
         <View style={styles.spacer} />
@@ -62,11 +70,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: "19%",
   },
-  wordmark: {
-    fontSize: 44,
-    fontWeight: "800",
-    letterSpacing: -1,
-    color: "#1a1a1a",
+  character: {
+    position: "absolute",
+    right: -13,
+    top: "31%",
   },
   tagline: {
     fontSize: 14,

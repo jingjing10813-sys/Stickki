@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DotPattern } from "@/components/dot-pattern";
-import { BackIcon, EyeIcon, EyeOffIcon } from "@/components/stickki-icons";
+import { BackIcon, EyeIcon, EyeOffIcon, StickkiWordmark } from "@/components/stickki-icons";
 import { StickkiColors } from "@/constants/stickki-theme";
 import { supabase } from "@/lib/supabase";
 
@@ -76,7 +76,7 @@ export default function EmailLoginScreen() {
           </Pressable>
 
           <View style={styles.logoArea}>
-            <Text style={styles.wordmark}>Stickki</Text>
+            <StickkiWordmark width={140} />
           </View>
 
           <View style={styles.form}>
@@ -193,12 +193,6 @@ const styles = StyleSheet.create({
   logoArea: {
     alignItems: "center",
     paddingTop: "15%",
-  },
-  wordmark: {
-    fontSize: 36,
-    fontWeight: "800",
-    letterSpacing: -1,
-    color: "#1a1a1a",
   },
   form: {
     marginTop: 64,
