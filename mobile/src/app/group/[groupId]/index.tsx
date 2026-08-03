@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AddTaskModal } from "@/components/add-task-modal";
 import { DotPattern } from "@/components/dot-pattern";
+import { DraggablePostIt } from "@/components/draggable-post-it";
 import { StickkiColors } from "@/constants/stickki-theme";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -22,6 +22,8 @@ import type { Group, Task } from "@/types";
 
 const C = StickkiColors.light;
 const GAP = 14;
+const BOARD_PAD_TOP = 16;
+const TRASH_ZONE = 120; // 화면 하단 삭제 영역 높이
 
 /** task.id 기반 결정적 지터 — 웹 getPos의 흩뿌리기 축약판 */
 function jitter(id: string, range: number) {
@@ -34,7 +36,7 @@ export default function GroupBoardScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
   const { profile } = useAuth();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -42,8 +44,17 @@ export default function GroupBoardScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [editingMotto, setEditingMotto] = useState(false);
   const [mottoDraft, setMottoDraft] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   const cardSize = (width - 48 - GAP) / 2;
+
+  const slotOf = useCallback(
+    (i: number) => ({
+      left: 24 + (i % 2) * (cardSize + GAP),
+      top: BOARD_PAD_TOP + Math.floor(i / 2) * (cardSize + GAP),
+    }),
+    [cardSize]
+  );
 
   const fetchTasks = useCallback(async () => {
     if (!groupId) return;
@@ -102,35 +113,59 @@ export default function GroupBoardScreen() {
 
   async function toggleDone(task: Task) {
     const done = task.status !== "done";
-    setTasks((ts) =>
-      ts.map((t) =>
-        t.id === task.id
-          ? { ...t, status: done ? "done" : "pending", completed_at: done ? new Date().toISOString() : null }
-          : t
-      )
-    );
-    await supabase
-      .from("tasks")
-      .update({ status: done ? "done" : "pending", completed_at: done ? new Date().toISOString() : null })
-      .eq("id", task.id);
+    const patch = {
+      status: done ? "done" : "pending",
+      completed_at: done ? new Date().toISOString() : null,
+    } as const;
+    setTasks((ts) => ts.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
+    await supabase.from("tasks").update(patch).eq("id", task.id);
   }
 
-  function confirmDelete(task: Task) {
-    Alert.alert("포스트잇 삭제", "이 포스트잇을 떼어낼까요?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제",
-        style: "destructive",
-        onPress: async () => {
-          setTasks((ts) => ts.filter((t) => t.id !== task.id));
-          await supabase.from("tasks").delete().eq("id", task.id);
-        },
-      },
+  async function handleDrop(task: Task, dx: number, dy: number, absoluteY: number) {
+    setDragging(false);
+
+    // 휴지통 영역에 드롭 → 삭제
+    if (absoluteY > height - TRASH_ZONE) {
+      setTasks((ts) => ts.filter((t) => t.id !== task.id));
+      await supabase.from("tasks").delete().eq("id", task.id);
+      return;
+    }
+
+    // 드롭 지점의 슬롯 계산 → 두 카드 자리 교환 (웹과 동일한 스왑 방식)
+    const i = tasks.findIndex((t) => t.id === task.id);
+    if (i < 0) return;
+    const src = slotOf(i);
+    const centerX = src.left + cardSize / 2 + dx;
+    const centerY = src.top + cardSize / 2 + dy;
+    const col = centerX > 24 + cardSize + GAP / 2 ? 1 : 0;
+    const maxRow = Math.ceil(tasks.length / 2) - 1;
+    const row = Math.min(
+      Math.max(Math.round((centerY - BOARD_PAD_TOP - cardSize / 2) / (cardSize + GAP)), 0),
+      maxRow
+    );
+    const j = Math.min(row * 2 + col, tasks.length - 1);
+    if (j === i) return;
+
+    const a = tasks[i];
+    const b = tasks[j];
+    const next = [...tasks];
+    next[i] = { ...b, position_x: a.position_x, position_y: a.position_y };
+    next[j] = { ...a, position_x: b.position_x, position_y: b.position_y };
+    setTasks(next);
+    await Promise.all([
+      supabase
+        .from("tasks")
+        .update({ position_x: b.position_x, position_y: b.position_y })
+        .eq("id", a.id),
+      supabase
+        .from("tasks")
+        .update({ position_x: a.position_x, position_y: a.position_y })
+        .eq("id", b.id),
     ]);
   }
 
   const boardHeight = useMemo(
-    () => Math.ceil(tasks.length / 2) * (cardSize + GAP) + 120,
+    () => Math.ceil(tasks.length / 2) * (cardSize + GAP) + 160,
     [tasks.length, cardSize]
   );
 
@@ -157,7 +192,7 @@ export default function GroupBoardScreen() {
     <View style={styles.root}>
       <DotPattern />
       <SafeAreaView style={styles.flex}>
-        {/* 헤더: 방 이름 + 가훈(탭하여 수정) */}
+        {/* 헤더: 방 이름 + 가훈(탭하여 수정) + 목록/마이페이지 */}
         <View style={styles.header}>
           <Text style={styles.roomName}>{group.name}</Text>
           {editingMotto ? (
@@ -181,74 +216,37 @@ export default function GroupBoardScreen() {
             </Pressable>
           )}
           <Pressable
-            style={styles.mypageBtn}
+            style={styles.headerBtn}
             onPress={() => router.push(`/group/${group.id}/list`)}
             hitSlop={8}
           >
-            <Text style={styles.mypageIcon}>☰</Text>
+            <Text style={styles.headerBtnIcon}>☰</Text>
           </Pressable>
           <Pressable
-            style={[styles.mypageBtn, styles.noAutoMargin]}
+            style={[styles.headerBtn, styles.noAutoMargin]}
             onPress={() => router.push(`/group/${group.id}/mypage`)}
             hitSlop={8}
           >
-            <Text style={styles.mypageIcon}>👤</Text>
+            <Text style={styles.headerBtnIcon}>👤</Text>
           </Pressable>
         </View>
 
         {/* 보드 */}
-        <ScrollView contentContainerStyle={{ height: boardHeight }}>
+        <ScrollView contentContainerStyle={{ height: boardHeight }} scrollEnabled={!dragging}>
           {tasks.map((task, i) => {
-            const col = i % 2;
-            const row = Math.floor(i / 2);
+            const slot = slotOf(i);
             return (
-              <Pressable
+              <DraggablePostIt
                 key={task.id}
-                onPress={() => router.push(`/group/${group.id}/task/${task.id}`)}
-                onLongPress={() => confirmDelete(task)}
-                style={[
-                  styles.card,
-                  {
-                    width: cardSize,
-                    height: cardSize,
-                    backgroundColor: task.color ?? "#FEF9C3",
-                    left: 24 + col * (cardSize + GAP) + jitter(task.id, 6),
-                    top: 16 + row * (cardSize + GAP) + jitter(task.id + "y", 6),
-                    transform: [{ rotate: `${task.rotation ?? 0}deg` }],
-                  },
-                  task.status === "done" && styles.cardDone,
-                ]}
-              >
-                {task.type === "note" && <View style={styles.pin} />}
-                {task.type === "todo" && (
-                  <Pressable
-                    style={[styles.checkbox, task.status === "done" && styles.checkboxOn]}
-                    onPress={() => toggleDone(task)}
-                    hitSlop={8}
-                  >
-                    {task.status === "done" && <Text style={styles.checkmark}>✓</Text>}
-                  </Pressable>
-                )}
-                <Text
-                  style={[styles.cardText, task.status === "done" && styles.cardTextDone]}
-                  numberOfLines={4}
-                >
-                  {task.content}
-                </Text>
-                <View style={styles.cardFooter}>
-                  {task.assignee_name ? (
-                    <Text style={styles.assignee}>{task.assignee_name}</Text>
-                  ) : null}
-                  {Object.entries(task.reactions ?? {}).some(([, v]) => v > 0) && (
-                    <Text style={styles.reactions}>
-                      {Object.entries(task.reactions ?? {})
-                        .filter(([, v]) => v > 0)
-                        .map(([e]) => e)
-                        .join(" ")}
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
+                task={task}
+                size={cardSize}
+                left={slot.left + jitter(task.id, 6)}
+                top={slot.top + jitter(task.id + "y", 6)}
+                onTap={(t) => router.push(`/group/${group.id}/task/${t.id}`)}
+                onToggleDone={toggleDone}
+                onDragStart={() => setDragging(true)}
+                onDrop={handleDrop}
+              />
             );
           })}
           {tasks.length === 0 && (
@@ -259,10 +257,17 @@ export default function GroupBoardScreen() {
           )}
         </ScrollView>
 
-        {/* FAB */}
-        <Pressable style={styles.fab} onPress={() => setShowAdd(true)}>
-          <Text style={styles.fabIcon}>+</Text>
-        </Pressable>
+        {/* 드래그 중 휴지통 존 / 평소 FAB */}
+        {dragging ? (
+          <View style={styles.trashZone} pointerEvents="none">
+            <Text style={styles.trashIcon}>🗑️</Text>
+            <Text style={styles.trashText}>여기로 끌면 삭제돼요</Text>
+          </View>
+        ) : (
+          <Pressable style={styles.fab} onPress={() => setShowAdd(true)}>
+            <Text style={styles.fabIcon}>+</Text>
+          </Pressable>
+        )}
 
         <AddTaskModal
           visible={showAdd}
@@ -288,19 +293,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   roomName: { fontSize: 18, fontWeight: "800", color: "#1a1a1a" },
-  mypageBtn: {
-    marginLeft: "auto",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.btnSecondaryBg,
-  },
-  mypageIcon: { fontSize: 15, color: "#1a1a1a" },
-  noAutoMargin: { marginLeft: 0 },
-  cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  reactions: { fontSize: 11 },
   motto: { fontSize: 13, color: C.text3, fontStyle: "italic" },
   mottoInput: {
     flex: 1,
@@ -310,43 +302,17 @@ const styles = StyleSheet.create({
     borderColor: C.borderMid,
     paddingVertical: 2,
   },
-  card: {
-    position: "absolute",
-    borderRadius: 4,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  cardDone: { opacity: 0.55 },
-  pin: {
-    position: "absolute",
-    top: -5,
-    alignSelf: "center",
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#EF4444",
-    borderWidth: 2,
-    borderColor: "#B91C1C",
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.3)",
+  headerBtn: {
+    marginLeft: "auto",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
+    backgroundColor: C.btnSecondaryBg,
   },
-  checkboxOn: { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" },
-  checkmark: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  cardText: { fontSize: 13, color: "#1a1a1a", lineHeight: 19, flex: 1 },
-  cardTextDone: { textDecorationLine: "line-through", color: "rgba(20,20,20,0.5)" },
-  assignee: { fontSize: 11, color: "rgba(20,20,20,0.5)", fontWeight: "600" },
+  noAutoMargin: { marginLeft: 0 },
+  headerBtnIcon: { fontSize: 15, color: "#1a1a1a" },
   faint: { fontSize: 13, color: C.text3 },
   smallBtn: {
     marginTop: 16,
@@ -356,6 +322,21 @@ const styles = StyleSheet.create({
     backgroundColor: C.btnSecondaryBg,
   },
   smallBtnText: { fontSize: 13, fontWeight: "600", color: "#1a1a1a" },
+  trashZone: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 110,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    backgroundColor: "rgba(229,57,53,0.12)",
+    borderTopWidth: 1,
+    borderColor: "rgba(229,57,53,0.3)",
+  },
+  trashIcon: { fontSize: 26 },
+  trashText: { fontSize: 12, fontWeight: "600", color: "#B91C1C" },
   fab: {
     position: "absolute",
     right: 24,
