@@ -13,7 +13,7 @@ const C = StickkiColors.light;
  * RLS 덕에 groups select 결과가 곧 "내가 속한 방"이라 별도 필터 불필요.
  */
 export default function IndexScreen() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [groupId, setGroupId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export default function IndexScreen() {
   }
 
   if (!user) return <Redirect href="/login" />;
+  if (!profile) return <Redirect href="/profile-setup" />;
   if (groupId) return <Redirect href={`/group/${groupId}`} />;
   return <Redirect href="/onboarding" />;
 }
