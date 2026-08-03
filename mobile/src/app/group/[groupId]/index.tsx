@@ -182,10 +182,17 @@ export default function GroupBoardScreen() {
           )}
           <Pressable
             style={styles.mypageBtn}
+            onPress={() => router.push(`/group/${group.id}/list`)}
+            hitSlop={8}
+          >
+            <Text style={styles.mypageIcon}>☰</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.mypageBtn, styles.noAutoMargin]}
             onPress={() => router.push(`/group/${group.id}/mypage`)}
             hitSlop={8}
           >
-            <Text style={styles.mypageIcon}>≡</Text>
+            <Text style={styles.mypageIcon}>👤</Text>
           </Pressable>
         </View>
 
@@ -197,6 +204,7 @@ export default function GroupBoardScreen() {
             return (
               <Pressable
                 key={task.id}
+                onPress={() => router.push(`/group/${group.id}/task/${task.id}`)}
                 onLongPress={() => confirmDelete(task)}
                 style={[
                   styles.card,
@@ -227,9 +235,19 @@ export default function GroupBoardScreen() {
                 >
                   {task.content}
                 </Text>
-                {task.assignee_name ? (
-                  <Text style={styles.assignee}>{task.assignee_name}</Text>
-                ) : null}
+                <View style={styles.cardFooter}>
+                  {task.assignee_name ? (
+                    <Text style={styles.assignee}>{task.assignee_name}</Text>
+                  ) : null}
+                  {Object.entries(task.reactions ?? {}).some(([, v]) => v > 0) && (
+                    <Text style={styles.reactions}>
+                      {Object.entries(task.reactions ?? {})
+                        .filter(([, v]) => v > 0)
+                        .map(([e]) => e)
+                        .join(" ")}
+                    </Text>
+                  )}
+                </View>
               </Pressable>
             );
           })}
@@ -279,7 +297,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: C.btnSecondaryBg,
   },
-  mypageIcon: { fontSize: 18, color: "#1a1a1a" },
+  mypageIcon: { fontSize: 15, color: "#1a1a1a" },
+  noAutoMargin: { marginLeft: 0 },
+  cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  reactions: { fontSize: 11 },
   motto: { fontSize: 13, color: C.text3, fontStyle: "italic" },
   mottoInput: {
     flex: 1,
