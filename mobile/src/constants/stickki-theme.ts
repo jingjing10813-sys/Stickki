@@ -50,6 +50,17 @@ export type StickkiTheme = keyof typeof StickkiColors;
 /** 온보딩 프로필 그리기 펜 색 (웹 page.tsx PEN_COLORS와 동일) */
 export const PEN_COLORS = ["#EF4444", "#3B82F6", "#000000"] as const;
 
+/** 포스트잇 색 (웹 PostItCard와 동일) */
+export const TODO_COLORS = [
+  "#FEF9C3", "#F3E8FF", "#FEF9C3", "#DBEAFE",
+  "#DCFCE7", "#FEE2E2", "#FEF9C3", "#F3F4F6",
+] as const;
+
+export const NOTE_COLORS = [
+  "#FEF9C3", "#FEE2E2", "#DBEAFE",
+  "#DCFCE7", "#F3E8FF", "#F3F4F6", "#FEF9C3",
+] as const;
+
 /** 프로필 배정 색 8종 (웹 page.tsx PROFILE_COLORS와 동일) */
 export const PROFILE_COLORS = [
   "#FF6B6B",
