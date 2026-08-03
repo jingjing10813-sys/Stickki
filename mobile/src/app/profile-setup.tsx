@@ -14,6 +14,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DotPattern } from "@/components/dot-pattern";
+import { BackIcon } from "@/components/stickki-icons";
 import { PEN_COLORS, PROFILE_COLORS, StickkiColors } from "@/constants/stickki-theme";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -26,12 +27,13 @@ type Stroke = { d: string; color: string };
 /** 온보딩 프로필 그리기 — 웹 profile-setup 캔버스의 Skia 구현 */
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { width } = useWindowDimensions();
   const canvasSize = Math.min(width - 48, 340);
+  const isEditing = profile !== null;
 
   const canvasRef = useCanvasRef();
-  const [name, setName] = useState("스티끼");
+  const [name, setName] = useState(profile?.name ?? "스티끼");
   const [penColor, setPenColor] = useState<string>(PEN_COLORS[2]);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [current, setCurrent] = useState<Stroke | null>(null);
@@ -61,7 +63,9 @@ export default function ProfileSetupScreen() {
     if (!image) return;
     setSaving(true);
     const avatar = `data:image/png;base64,${image.encodeToBase64()}`;
-    const color = PROFILE_COLORS[Math.floor(Math.random() * PROFILE_COLORS.length)];
+    // 수정 모드에선 기존 배정 색 유지
+    const color =
+      profile?.color ?? PROFILE_COLORS[Math.floor(Math.random() * PROFILE_COLORS.length)];
     const { error } = await supabase
       .from("profiles")
       .upsert({ id: user.id, name: name.trim() || "스티끼", avatar, color });
@@ -77,7 +81,12 @@ export default function ProfileSetupScreen() {
     <View style={styles.root}>
       <DotPattern />
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.title}>내 얼굴을 그려주세요!</Text>
+        {isEditing && (
+          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
+            <BackIcon />
+          </Pressable>
+        )}
+        <Text style={styles.title}>{isEditing ? "프로필 수정" : "내 얼굴을 그려주세요!"}</Text>
         <Text style={styles.desc}>포스트잇에 붙을 나만의 캐릭터예요</Text>
 
         <TextInput
@@ -149,6 +158,20 @@ export default function ProfileSetupScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   safe: { flex: 1, alignItems: "center", paddingHorizontal: 24, paddingTop: 24 },
+  back: {
+    position: "absolute",
+    top: 12,
+    left: 22,
+    zIndex: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
   title: { fontSize: 22, fontWeight: "700", color: "#1a1a1a" },
   desc: { fontSize: 13, color: C.text3, marginTop: 4 },
   nameInput: {

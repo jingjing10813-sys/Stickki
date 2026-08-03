@@ -180,6 +180,13 @@ export default function GroupBoardScreen() {
               <Text style={styles.motto}>“{group.motto}”</Text>
             </Pressable>
           )}
+          <Pressable
+            style={styles.mypageBtn}
+            onPress={() => router.push(`/group/${group.id}/mypage`)}
+            hitSlop={8}
+          >
+            <Text style={styles.mypageIcon}>≡</Text>
+          </Pressable>
         </View>
 
         {/* 보드 */}
@@ -263,6 +270,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   roomName: { fontSize: 18, fontWeight: "800", color: "#1a1a1a" },
+  mypageBtn: {
+    marginLeft: "auto",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.btnSecondaryBg,
+  },
+  mypageIcon: { fontSize: 18, color: "#1a1a1a" },
   motto: { fontSize: 13, color: C.text3, fontStyle: "italic" },
   mottoInput: {
     flex: 1,
