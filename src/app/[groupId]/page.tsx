@@ -317,27 +317,14 @@ export default function WhiteboardPage() {
       return;
     }
 
+    // RLS 전환 이후 멤버 추가는 온보딩 RPC에서 처리됨 — 여기선 조회만 (비멤버는 조회 자체가 안 됨)
     supabase.from("groups").select("*").eq("id", groupId).single()
-      .then(async ({ data }) => {
+      .then(({ data }) => {
         if (!data) {
           setGroupNotFound(true);
           return;
         }
-        const alreadyMember = (data.members ?? []).some((m: Member) => m.id === user.id);
-        if (!alreadyMember) {
-          const newMember: Member = {
-            id: user.id,
-            name: profile.name,
-            avatar: profile.avatar,
-            color: profile.color,
-          };
-          const updated = [...(data.members ?? []), newMember];
-          const { data: updatedGroup } = await supabase
-            .from("groups").update({ members: updated }).eq("id", data.id).select().single();
-          setGroup(updatedGroup ?? { ...data, members: updated });
-        } else {
-          setGroup(data);
-        }
+        setGroup(data);
         setMottoValue(data.motto);
       });
 

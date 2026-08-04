@@ -193,16 +193,16 @@ export default function MyPage() {
 
   async function handleLeaveRoom() {
     if (!group || !user) return;
-    const updated = (group.members ?? []).filter((m) => m.id !== user.id);
-    await supabase.from("groups").update({ members: updated }).eq("id", group.id);
+    await supabase.rpc("leave_group", { g: group.id });
+    localStorage.removeItem("last_group_id");
     router.push("/");
   }
 
   async function handleDeleteAccount() {
-    if (!group || !user) return;
-    const updated = (group.members ?? []).filter((m) => m.id !== user.id);
-    await supabase.from("groups").update({ members: updated }).eq("id", group.id);
-    await supabase.from("profiles").delete().eq("id", user.id);
+    if (!user) return;
+    // 전체 방 멤버 제거 + auth 계정 실제 삭제 (profiles는 CASCADE)
+    const { error } = await supabase.rpc("delete_account");
+    if (error) return;
     localStorage.removeItem("last_group_id");
     await signOut();
     router.push("/login");

@@ -55,8 +55,8 @@ export default function RoomInfoPage() {
 
   async function handleLeaveRoom() {
     if (!group || !user) return;
-    const updated = (group.members ?? []).filter((m: Member) => m.id !== user.id);
-    await supabase.from("groups").update({ members: updated }).eq("id", group.id);
+    await supabase.rpc("leave_group", { g: group.id });
+    localStorage.removeItem("last_group_id");
     router.push("/");
   }
 

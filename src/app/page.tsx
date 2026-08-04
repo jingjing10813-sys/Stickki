@@ -17,9 +17,6 @@ const PANEL_PEEK = 44;
 // 0=접힘 1=기본(디폴트.png, 화면 반반) 2=풀(바텀업.png, 캔버스 확대)
 const PANEL_Y = [0, -360, -650];
 
-function generateInviteCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
 
 export default function OnboardingPage() {
   return (
@@ -69,7 +66,8 @@ function OnboardingPageInner() {
   const [inviteInput, setInviteInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [joinError, setJoinError] = useState(false);
-  const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
+  // 프로필이 없을 때 그리기부터 시킨 뒤 이어서 실행할 동작 (RPC가 프로필을 요구함)
+  const [pendingAction, setPendingAction] = useState<"create" | "join" | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [profileName, setProfileName] = useState("스티끼");
   const [editingName, setEditingName] = useState(false);
@@ -137,52 +135,51 @@ function OnboardingPageInner() {
     return () => clearTimeout(t);
   }, [joinError]);
 
-  function proceedAfterGroup(groupId: string) {
-    if (!profile) {
-      setPendingGroupId(groupId);
-      setStep("profile-setup");
+  // RLS 전환 이후 방 생성/입장은 서버 RPC로만 가능 (초대코드도 서버가 생성)
+  async function doCreate() {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("create_group", {
+      g_name: roomName.trim(),
+      g_motto: motto.trim(),
+    });
+    setLoading(false);
+    if (error || !data?.id) return;
+    router.push(`/${data.id}`);
+  }
+
+  async function doJoin() {
+    setLoading(true);
+    setJoinError(false);
+    const { data, error } = await supabase.rpc("join_group_with_code", {
+      code: inviteInput.trim(),
+    });
+    setLoading(false);
+    if (error || !data) {
+      setStep("join");
+      setJoinError(true);
       return;
     }
-    router.push(`/${groupId}`);
+    router.push(`/${data}`);
   }
 
   async function handleCreate() {
     if (!roomName.trim() || !motto.trim()) return;
-    setLoading(true);
-    let code = generateInviteCode();
-    const { data, error } = await supabase
-      .from("groups")
-      .insert({ name: roomName.trim(), motto: motto.trim(), invite_code: code, members: [] })
-      .select()
-      .single();
-    if (error) {
-      code = generateInviteCode();
-      const retry = await supabase
-        .from("groups")
-        .insert({ name: roomName.trim(), motto: motto.trim(), invite_code: code, members: [] })
-        .select()
-        .single();
-      setLoading(false);
-      if (retry.error) return;
-      proceedAfterGroup(retry.data.id);
+    if (!profile) {
+      setPendingAction("create");
+      setStep("profile-setup");
       return;
     }
-    setLoading(false);
-    proceedAfterGroup(data.id);
+    await doCreate();
   }
 
   async function handleJoin() {
     if (!inviteInput.trim()) return;
-    setLoading(true);
-    setJoinError(false);
-    const { data } = await supabase
-      .from("groups")
-      .select("id")
-      .eq("invite_code", inviteInput.trim().toUpperCase())
-      .single();
-    setLoading(false);
-    if (!data) { setJoinError(true); return; }
-    proceedAfterGroup(data.id);
+    if (!profile) {
+      setPendingAction("join");
+      setStep("profile-setup");
+      return;
+    }
+    await doJoin();
   }
 
   async function handleSaveProfile() {
@@ -208,7 +205,13 @@ function OnboardingPageInner() {
     setSaveError(null);
     await refreshProfile();
     setLoading(false);
-    router.push(pendingGroupId ? `/${pendingGroupId}` : "/");
+    if (pendingAction === "create") {
+      await doCreate();
+    } else if (pendingAction === "join") {
+      await doJoin();
+    } else {
+      router.push("/");
+    }
   }
 
   if (authLoading || previewStep === "loading") {
