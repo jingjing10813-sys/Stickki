@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스티끼 Expo Go 테스트 체크리스트</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+    color: #1a1a2e; line-height: 1.6; max-width: 760px;
+    margin: 0 auto; padding: 40px 24px 80px;
+    background-color: #fff;
+    background-image: radial-gradient(circle, #f3f4f6 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  header { border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+  h1 { font-size: 1.5rem; letter-spacing: -0.02em; }
+  .subtitle { color: #6b7280; margin-top: 4px; font-size: 0.9rem; }
+  .progress {
+    position: sticky; top: 0; z-index: 5;
+    background: #FEF9C3; border: 1px solid #e5d97a; border-radius: 10px;
+    padding: 10px 16px; margin-bottom: 20px; font-weight: 700; font-size: 0.95rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  }
+  .notice {
+    background: #fee2e2; border-left: 4px solid #dc2626;
+    padding: 10px 14px; margin-bottom: 20px; font-size: 0.85rem; border-radius: 0 8px 8px 0;
+  }
+  .prep {
+    background: #dbeafe; border-left: 4px solid #2563eb;
+    padding: 10px 14px; margin-bottom: 20px; font-size: 0.85rem; border-radius: 0 8px 8px 0;
+  }
+  code { background: rgba(0,0,0,0.06); border-radius: 4px; padding: 1px 6px; font-size: 0.85em; }
+  section {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  h2 { font-size: 1.02rem; margin-bottom: 10px; }
+  label.item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 0.92rem;
+  }
+  label.item:hover { background: rgba(0,0,0,0.03); }
+  label.item input { margin-top: 4px; width: 16px; height: 16px; accent-color: #16a34a; flex-shrink: 0; }
+  label.item.done span { text-decoration: line-through; color: #9ca3af; }
+  .skip { background: #f9fafb; }
+  .skip h2 { color: #6b7280; }
+  .skip p { font-size: 0.85rem; color: #6b7280; }
+  .reset { margin-top: 12px; text-align: center; }
+  .reset button {
+    border: 1px solid #e5e7eb; background: #fff; border-radius: 10px;
+    padding: 8px 18px; font-size: 0.85rem; cursor: pointer; color: #6b7280;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>스티끼 RN 앱 — Expo Go 테스트 체크리스트</h1>
+  <div class="subtitle">체크 상태는 이 브라우저에 자동 저장됩니다</div>
+</header>
+
+<div class="progress" id="progress">0 / 0 완료</div>
+
+<div class="prep">
+  <b>준비:</b> PC에서 <code>cd mobile</code> → <code>npx expo start</code> → iPhone 카메라로 QR 스캔 (같은 와이파이, Expo Go 설치)
+</div>
+<div class="notice">
+  ⚠️ 메일 인증 테스트는 시간당 발송 제한이 있어요 — 429 에러가 나면 1시간 뒤 재시도. 신규 가입은 별칭 이메일(<code>내주소+숫자@gmail.com</code>)로 반복 테스트 가능
+</div>
+
+<section>
+  <h2>1. 로그인 화면</h2>
+  <label class="item"><input type="checkbox"><span>랜딩: 스티끼 워드마크(테이프 로고) + 오른쪽 끝 캐릭터가 보인다</span></label>
+  <label class="item"><input type="checkbox"><span>애플/카카오 버튼 탭 → "준비 중" 안내가 뜬다 (정상 — 4주차 연동 예정)</span></label>
+  <label class="item"><input type="checkbox"><span>"이메일로 로그인하기" → 이메일 로그인 화면 진입</span></label>
+  <label class="item"><input type="checkbox"><span>틀린 비밀번호 → "이메일 또는 비밀번호가 올바르지 않아요" 빨간 안내</span></label>
+  <label class="item"><input type="checkbox"><span>테스트 계정 로그인 성공 → 방으로 이동</span></label>
+  <label class="item"><input type="checkbox"><span>앱 완전 종료 후 재실행 → 로그인 유지된 채 방으로 바로 진입</span></label>
+</section>
+
+<section>
+  <h2>2. 회원가입 (새 별칭 이메일)</h2>
+  <label class="item"><input type="checkbox"><span>이메일 입력 → 오른쪽 "인증요청" 버튼 활성화</span></label>
+  <label class="item"><input type="checkbox"><span>메일 도착: 제목 [스티끼] 이메일 인증번호, 노란 포스트잇 디자인</span></label>
+  <label class="item"><input type="checkbox"><span>인증번호 입력칸이 아래 나타남 → 코드 입력 → "인증받기" → "이메일 인증 완료 ✓"</span></label>
+  <label class="item"><input type="checkbox"><span>틀린 코드 입력 시 → "인증번호가 올바르지 않아요"</span></label>
+  <label class="item"><input type="checkbox"><span>비밀번호 불일치 시 빨간 안내, 6자 미만이면 가입 버튼 비활성</span></label>
+  <label class="item"><input type="checkbox"><span>약관: 전체 동의 토글 동작, 필수 2개 체크 전엔 가입 버튼 비활성</span></label>
+  <label class="item"><input type="checkbox"><span>"스티끼 시작하기" → 프로필 그리기 화면으로 자동 이동</span></label>
+</section>
+
+<section>
+  <h2>3. 프로필 그리기</h2>
+  <label class="item"><input type="checkbox"><span>캔버스에 손가락으로 그려진다 (선이 부드러운지, 끊기지 않는지)</span></label>
+  <label class="item"><input type="checkbox"><span>펜 3색 전환, "지우기"로 전체 삭제</span></label>
+  <label class="item"><input type="checkbox"><span>이름 수정 가능 (기본값 "스티끼")</span></label>
+  <label class="item"><input type="checkbox"><span>그림 없으면 "완료" 비활성 / 그리면 활성 → 완료 시 온보딩으로</span></label>
+</section>
+
+<section>
+  <h2>4. 온보딩</h2>
+  <label class="item"><input type="checkbox"><span>"새 집 만들기" → 이름 → 가훈 → 방 생성되고 보드 진입</span></label>
+  <label class="item"><input type="checkbox"><span>(다른 계정으로) "초대코드로 입장" → 마이페이지의 코드 입력 → 입장 성공</span></label>
+  <label class="item"><input type="checkbox"><span>틀린 코드 → "존재하지 않는 집입니다"</span></label>
+</section>
+
+<section>
+  <h2>5. 보드</h2>
+  <label class="item"><input type="checkbox"><span>포스트잇들이 흩뿌려진 배치(살짝 회전·어긋남)로 보인다</span></label>
+  <label class="item"><input type="checkbox"><span>+ 버튼 → 할일/쪽지 전환, 색상 선택, 등록 → 보드에 붙는다</span></label>
+  <label class="item"><input type="checkbox"><span>쪽지엔 빨간 핀, 할일엔 체크박스가 보인다</span></label>
+  <label class="item"><input type="checkbox"><span>체크박스 탭 → 완료(취소선+반투명) ↔ 해제 토글</span></label>
+  <label class="item"><input type="checkbox"><span><b>길게 눌러 드래그</b> → 카드가 살짝 커지며 따라온다 → 다른 카드 자리에 놓으면 둘이 자리교환</span></label>
+  <label class="item"><input type="checkbox"><span>드래그 중 하단에 빨간 휴지통 존 등장 → 끌어다 놓으면 삭제</span></label>
+  <label class="item"><input type="checkbox"><span>드래그 중 화면 스크롤이 안 움직인다 (충돌 방지)</span></label>
+  <label class="item"><input type="checkbox"><span>가훈 탭 → 인라인 수정 → 엔터로 저장</span></label>
+  <label class="item"><input type="checkbox"><span>카드 짧게 탭 → 상세 화면으로</span></label>
+</section>
+
+<section>
+  <h2>6. 실시간 동기화 (기기 2개 또는 웹 로컬과 함께)</h2>
+  <label class="item"><input type="checkbox"><span>한쪽에서 등록 → 다른 쪽에 즉시 나타남</span></label>
+  <label class="item"><input type="checkbox"><span>완료 체크/삭제도 실시간 반영</span></label>
+  <label class="item"><input type="checkbox"><span>가훈 수정도 상대 화면에 반영</span></label>
+</section>
+
+<section>
+  <h2>7. 상세 / 리스트</h2>
+  <label class="item"><input type="checkbox"><span>상세: 내용 수정 → 저장 → 보드에 반영</span></label>
+  <label class="item"><input type="checkbox"><span>담당자 칩(멤버 이름들 + 없음) 선택</span></label>
+  <label class="item"><input type="checkbox"><span>마감일 칩: 오늘/내일/일주일/없음</span></label>
+  <label class="item"><input type="checkbox"><span>리액션 이모지 탭 → 켜짐(노란 테두리) ↔ 꺼짐, 보드 카드 하단에 표시</span></label>
+  <label class="item"><input type="checkbox"><span>쪽지 상세엔 고정(📌) 토글이 대신 보인다</span></label>
+  <label class="item"><input type="checkbox"><span>삭제 버튼 → 확인 → 목록/보드에서 사라짐</span></label>
+  <label class="item"><input type="checkbox"><span>리스트(☰): 전체/할일/쪽지/완료 필터 동작, 행 탭 → 상세</span></label>
+</section>
+
+<section>
+  <h2>8. 마이페이지 (👤)</h2>
+  <label class="item"><input type="checkbox"><span>손그림 아바타 + 이름 + 이메일 표시</span></label>
+  <label class="item"><input type="checkbox"><span>"수정" → 그리기 화면 (이름 미리 채워짐) → 다시 그려 저장 → 반영</span></label>
+  <label class="item"><input type="checkbox"><span>초대코드 표시, 멤버 목록 정확</span></label>
+  <label class="item"><input type="checkbox"><span>방 나가기 → 확인 → 온보딩으로 (재입장하려면 코드 필요)</span></label>
+  <label class="item"><input type="checkbox"><span>로그아웃 → 로그인 화면으로</span></label>
+</section>
+
+<section>
+  <h2>9. 비밀번호 찾기</h2>
+  <label class="item"><input type="checkbox"><span>이메일 로그인 화면 → "비밀번호를 잊으셨나요?"</span></label>
+  <label class="item"><input type="checkbox"><span>메일 도착: [스티끼] 비밀번호 재설정 인증번호</span></label>
+  <label class="item"><input type="checkbox"><span>코드 입력 → 새 비밀번호 설정 → 새 비밀번호로 로그인 확인</span></label>
+</section>
+
+<section>
+  <h2>10. 탈퇴 (일회용 계정으로만!)</h2>
+  <label class="item"><input type="checkbox"><span>마이페이지 → 계정 탈퇴 → 확인 → 로그인 화면으로</span></label>
+  <label class="item"><input type="checkbox"><span>같은 이메일·비밀번호로 재로그인 <b>안 되면</b> 성공</span></label>
+  <label class="item"><input type="checkbox"><span>(다른 멤버 화면에서) 탈퇴자가 멤버 목록에서 사라짐</span></label>
+</section>
+
+<section>
+  <h2>11. 전반 체감 (발견하면 메모)</h2>
+  <label class="item"><input type="checkbox"><span>키보드가 입력칸을 가리지 않는가 (가입/로그인/모달)</span></label>
+  <label class="item"><input type="checkbox"><span>노치·홈바에 UI가 겹치지 않는가</span></label>
+  <label class="item"><input type="checkbox"><span>화면 전환·버튼 반응이 어색한 곳</span></label>
+  <label class="item"><input type="checkbox"><span>글꼴/간격/색이 웹과 크게 다른 곳</span></label>
+</section>
+
+<section class="skip">
+  <h2>아직 없는 것 (버그 아님)</h2>
+  <p>소셜 로그인 (4주차) · 푸시 알림 (4주차) · 다크모드 · 첫입장 튜토리얼 (v1.1) · 리액션 인원수 카운트 (v1.1)</p>
+</section>
+
+<div class="reset"><button onclick="resetAll()">체크 전체 초기화</button></div>
+
+<script>
+  const KEY = "stickki-qa-checklist";
+  const boxes = Array.from(document.querySelectorAll("label.item input"));
+  const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
+  boxes.forEach((b, i) => {
+    b.checked = !!saved[i];
+    b.parentElement.classList.toggle("done", b.checked);
+    b.addEventListener("change", () => {
+      b.parentElement.classList.toggle("done", b.checked);
+      localStorage.setItem(KEY, JSON.stringify(boxes.map(x => x.checked)));
+      updateProgress();
+    });
+  });
+  function updateProgress() {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById("progress").textContent =
+      done + " / " + boxes.length + " 완료" + (done === boxes.length ? " 🎉" : "");
+  }
+  function resetAll() {
+    boxes.forEach(b => { b.checked = false; b.parentElement.classList.remove("done"); });
+    localStorage.removeItem(KEY);
+    updateProgress();
+  }
+  updateProgress();
+</script>
+
+</body>
+</html>
