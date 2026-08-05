@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AddTaskModal } from "@/components/add-task-modal";
 import { DotPattern } from "@/components/dot-pattern";
 import { DraggablePostIt } from "@/components/draggable-post-it";
+import { MemberBar } from "@/components/member-bar";
 import { StickkiColors } from "@/constants/stickki-theme";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -230,6 +231,8 @@ export default function GroupBoardScreen() {
             <Text style={styles.headerBtnIcon}>👤</Text>
           </Pressable>
         </View>
+
+        <MemberBar members={group.members ?? []} />
 
         {/* 보드 */}
         <ScrollView contentContainerStyle={{ height: boardHeight }} scrollEnabled={!dragging}>
