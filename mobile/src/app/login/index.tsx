@@ -1,4 +1,7 @@
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -10,6 +13,7 @@ import {
   StickkiWordmark,
 } from "@/components/stickki-icons";
 import { StickkiColors } from "@/constants/stickki-theme";
+import { supabase } from "@/lib/supabase";
 
 const C = StickkiColors.light;
 
@@ -19,6 +23,43 @@ function notReady() {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [kakaoLoading, setKakaoLoading] = useState(false);
+
+  async function signInWithKakao() {
+    if (kakaoLoading) return;
+    setKakaoLoading(true);
+    try {
+      const redirectTo = Linking.createURL("login");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "kakao",
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error || !data?.url) {
+        Alert.alert("로그인 실패", "카카오 로그인을 시작할 수 없어요. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type !== "success") return; // 사용자가 취소
+
+      const code = new URL(result.url).searchParams.get("code");
+      if (!code) {
+        Alert.alert("로그인 실패", "카카오 인증 정보를 받지 못했어요. 다시 시도해주세요.");
+        return;
+      }
+
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        Alert.alert("로그인 실패", "세션 생성에 실패했어요. 다시 시도해주세요.");
+        return;
+      }
+
+      // 세션이 생기면 index의 게이트가 홈/프로필설정으로 보냄
+      router.replace("/");
+    } finally {
+      setKakaoLoading(false);
+    }
+  }
 
   return (
     <View style={styles.root}>
@@ -43,9 +84,15 @@ export default function LoginScreen() {
             <Text style={styles.appleText}>애플로 시작하기</Text>
           </Pressable>
 
-          <Pressable style={[styles.button, styles.kakaoButton]} onPress={notReady}>
+          <Pressable
+            style={[styles.button, styles.kakaoButton, kakaoLoading && styles.buttonDisabled]}
+            onPress={signInWithKakao}
+            disabled={kakaoLoading}
+          >
             <KakaoLogo />
-            <Text style={styles.kakaoText}>카카오로 시작하기</Text>
+            <Text style={styles.kakaoText}>
+              {kakaoLoading ? "카카오로 로그인 중..." : "카카오로 시작하기"}
+            </Text>
           </Pressable>
 
           <Pressable style={styles.emailLink} onPress={() => router.push("/login/email")}>
@@ -113,6 +160,9 @@ const styles = StyleSheet.create({
   },
   kakaoButton: {
     backgroundColor: "#FEE500",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   kakaoText: {
     color: "rgba(0,0,0,0.85)",

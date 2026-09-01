@@ -12,5 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     // 웹과 달리 URL 기반 세션 감지가 없음 (딥링크는 별도 처리)
     detectSessionInUrl: false,
+    // OAuth(카카오 등)는 인가 코드 교환 방식 사용
+    flowType: "pkce",
   },
 });
